@@ -2,3 +2,6 @@ node_modules
 *.log
 dist
 *.old.*
+
+# Sensitive data
+src/config.json
