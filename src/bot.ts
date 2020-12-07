@@ -16,7 +16,7 @@ export default class Dissidium {
 
   constructor() {
     this.client.on("ready", () => {
-      console.log("Woke.");
+      console.log("Hello world!");
     });
 
     process.once("SIGINT", async () => {
