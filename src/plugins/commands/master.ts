@@ -1,7 +1,6 @@
 import { sendError } from "./../../utils/index";
-import { CommandPlugin } from "../../utils/PluginStructs";
+import { CommandPlugin, UsageArray } from "../../utils/PluginStructs";
 import { Guild, Message, MessageEmbed } from "discord.js";
-import { CommandArguments } from "../commandMan";
 import DatabaseMan from "../databaseMan";
 
 /**
@@ -13,7 +12,16 @@ export default class Master extends CommandPlugin {
   description = "Assign dedicated users for the management of the bot.";
 
   args = ["{add|remove|list}", "USERNAME#DISCRIMINATOR"];
-  usage = ["master {add|remove} USERNAME#DISCRIMINATOR", "master {list}"];
+  usage: UsageArray = [
+    {
+      example: "{add|remove} USERNAME#DISCRIMINATOR",
+      description: "Add or remove a bot master",
+    },
+    {
+      example: "list",
+      description: "List the currently assigned bot masters",
+    },
+  ];
 
   static dependencies = ["databaseMan"];
   databaseMan: DatabaseMan | undefined = this.bot.plugins.get(
@@ -89,17 +97,16 @@ export default class Master extends CommandPlugin {
     );
   };
 
-  execute = async (msg: Message, args: CommandArguments): Promise<void> => {
-    const argList = args.getArgs();
-    switch (argList.shift()) {
+  execute = async (msg: Message, args: string[], sendHelp: () => void): Promise<void> => {
+    switch (args.shift()) {
       case "add":
-        return this.addMaster(msg, argList);
+        return this.addMaster(msg, args);
       case "remove":
-        return this.deleteMaster(msg, argList);
+        return this.deleteMaster(msg, args);
       case "list":
         return this.listMasters(msg);
       default:
-        return;
+        return sendHelp();
     }
   };
 }

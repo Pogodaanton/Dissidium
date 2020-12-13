@@ -1,7 +1,6 @@
 import { join } from "path";
 import Plugin, { CommandPlugin } from "../utils/PluginStructs";
 import { Message } from "discord.js";
-import { CommandArguments } from "./commandMan";
 import DatabaseMan from "./databaseMan";
 import { sendError } from "../utils";
 
@@ -21,10 +20,10 @@ export default class PluginReloader extends CommandPlugin {
     message.react("✅");
   };
 
-  execute = async (message: Message, args: CommandArguments): Promise<void> => {
-    if (!args.checkRequired(this)) return;
+  execute = async (message: Message, args: string[]): Promise<void> => {
+    if (!args[0]) return;
 
-    const commandName = args.getArgs()[0].toLowerCase();
+    const commandName = args[0].toLowerCase();
 
     if (commandName === "db") {
       return this.reloadDatabase(message);

@@ -1,4 +1,3 @@
-import { CommandArguments } from "../plugins/commandMan";
 import { Message } from "discord.js";
 import Dissidium from "../bot";
 
@@ -31,6 +30,32 @@ class Plugin {
   };
 }
 
+export type UsageArray = Array<
+  | {
+      /**
+       * Keywords for the help plugin's indexer.
+       *
+       * These are used for finding this example object
+       * when using the help command.
+       */
+      keywords?: string[];
+      /**
+       * The usage example without the command name.
+       */
+      example: string;
+      /**
+       * An explanation to the given example for what it does.
+       */
+      description: string;
+      /**
+       * Subsequent examples and explanations under the same topic.
+       * Note that only the top-most example objects are evaluated when using `!help`.
+       */
+      children?: UsageArray;
+    }
+  | string
+>;
+
 export class CommandPlugin extends Plugin {
   /**
    * The primary command name
@@ -59,7 +84,7 @@ export class CommandPlugin extends Plugin {
    * An array with usage examples.
    * If this is populated, showing this to the user will be preffered over `this.args`.
    */
-  usage: string[] = [];
+  usage: UsageArray = [];
 
   /**
    * Command usage cooldown
@@ -72,7 +97,7 @@ export class CommandPlugin extends Plugin {
    */
   adminOnly = true;
 
-  execute: (message: Message, args: CommandArguments) => void = () => {
+  execute: (message: Message, args: string[], sendHelp: () => void) => void = () => {
     console.error("Command function not implemented!");
   };
 

@@ -1,81 +1,6 @@
-import { CommandPlugin } from "../utils/PluginStructs";
-import { Message, MessageEmbed } from "discord.js";
+import { Message } from "discord.js";
 import Plugin from "../utils/PluginStructs";
 import DatabaseMan from "./databaseMan";
-
-export const generateHelpEmbed = (commandHandler: CommandPlugin): MessageEmbed => {
-  const {
-    config: { prefix },
-    command,
-    usage,
-  } = commandHandler;
-
-  if (usage.length <= 0) usage.push(command);
-
-  return new MessageEmbed({
-    color: "aliceblue",
-    author: {
-      name: `Usage examples: ${prefix}${command}`,
-    },
-    footer: {
-      text: `Use "${prefix}help ${command}" for more info`,
-    },
-    description: usage
-      .map(example => `\`\`\`${prefix}${example.trim()}\`\`\``)
-      .join("\n"),
-  });
-};
-
-export class CommandArguments {
-  args: string[] = [];
-  message: Message;
-
-  constructor(args: string[], message: Message) {
-    this.args = args;
-    this.message = message;
-  }
-
-  getContent = (): string => this.args.join(" ");
-  getArgs = (): string[] => this.args;
-
-  /**
-   * Makes sure all required arguments are defined.
-   *
-   * The check is based on whitespace splitting, write your own
-   * argument check in complex scenarios.
-   */
-  checkRequired = (commandHandler: CommandPlugin): boolean => {
-    const { args } = commandHandler;
-
-    if (this.args.length >= args.filter(val => typeof val === "string").length) {
-      return true;
-    }
-
-    this.sendRequiredArgs(commandHandler);
-    return false;
-  };
-
-  /**
-   * Alerts the requesting user to provide more arguments.
-   */
-  sendRequiredArgs = async (commandHandler: CommandPlugin): Promise<void> => {
-    const { channel } = this.message;
-
-    await channel.send(
-      `You need to provide more arguments, <@${this.message.author}>!`,
-      generateHelpEmbed(commandHandler)
-    );
-
-    return;
-  };
-
-  sendUsage = async (commandHandler: CommandPlugin): Promise<void> => {
-    const { channel, author } = this.message;
-
-    await channel.send(`Bad syntax, <@${author}>!`, generateHelpEmbed(commandHandler));
-    return;
-  };
-}
 
 /**
  * Handles chat commands
@@ -83,6 +8,12 @@ export class CommandArguments {
 export default class CommandMan extends Plugin {
   static dependencies = ["databaseMan"];
   databaseMan = this.bot.plugins.get("DatabaseMan") as DatabaseMan;
+
+  sendHelp = (message: Message, commandName: string) => (): void => {
+    return this.bot.commands.get("help")?.execute(message, [commandName], () => {
+      return;
+    });
+  };
 
   load = (): void => {
     this.client.on("message", async message => {
@@ -121,7 +52,11 @@ export default class CommandMan extends Plugin {
         }
       }
 
-      commandHandler.execute(message, new CommandArguments(args, message));
+      commandHandler.execute(
+        message,
+        args,
+        this.sendHelp(message, commandHandler.command)
+      );
     });
   };
 }

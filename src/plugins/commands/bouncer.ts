@@ -13,7 +13,6 @@ import {
   NewsChannel,
   GuildMember,
 } from "discord.js";
-import { CommandArguments } from "../commandMan";
 import schedule, { scheduleJob } from "node-schedule";
 import DatabaseMan from "../databaseMan";
 import { sendError } from "../../utils";
@@ -24,9 +23,10 @@ import { sendError } from "../../utils";
  */
 export default class BouncerOptions extends CommandPlugin {
   command = "bouncer";
+  description = "Let the bot provide users a list of optional roles to choose from.";
   usage = [
     "bouncer {set-channel|remove-channel} [CHANNEL-NAME]",
-    "bouncer settings {add-language|remove-language} [EMOJI] [ROLE-NAME|-]",
+    "bouncer settings {add-role|remove-role} [EMOJI] [ROLE-NAME|-]",
   ];
 
   refreshJobScheduler: schedule.Job | null = null;
@@ -322,18 +322,16 @@ export default class BouncerOptions extends CommandPlugin {
     }
   };
 
-  execute = async (msg: Message, args: CommandArguments): Promise<void> => {
-    const argsList = args.getArgs();
-
-    switch (argsList.shift()?.toLowerCase()) {
+  execute = async (msg: Message, args: string[], sendHelp: () => void): Promise<void> => {
+    switch (args.shift()?.toLowerCase()) {
       case "set-channel":
-        return this.setLangChannel(msg, argsList);
+        return this.setLangChannel(msg, args);
       case "remove-channel":
-        return this.removeLangChannel(msg, argsList);
+        return this.removeLangChannel(msg, args);
       case "settings":
-        return this.getSettingsArg(msg, argsList);
+        return this.getSettingsArg(msg, args);
       default:
-        args.sendUsage(this);
+        return sendHelp();
     }
   };
 
