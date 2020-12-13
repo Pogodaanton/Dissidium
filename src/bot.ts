@@ -20,11 +20,10 @@ export default class Dissidium {
     });
 
     process.once("SIGINT", async () => {
-      console.log("Shutting down...");
       await this.cleanUp();
       await this.client.user?.setStatus("invisible");
 
-      process.exit();
+      process.exit(0);
     });
   }
 
