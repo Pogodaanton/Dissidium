@@ -41,6 +41,7 @@ function stopWithError(err: any) {
 function checkMissingObligatories(obj: Record<string, unknown>) {
   const obligatoryItems: { key: string; type: string }[] = [
     { key: "token", type: "string" },
+    { key: "prefix", type: "string" },
   ];
 
   obligatoryItems.forEach(obligatory => {
@@ -68,9 +69,16 @@ There is a sample file called "config.sample.json" which you can modify and save
     );
   }
 
-  const cfgFile: ConfigFile = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  let cfgFile: ConfigFile = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  cfgFile = { ...configDefaults, ...cfgFile };
   checkMissingObligatories(cfgFile);
 
+  // Avoid bad prefixes
+  if (cfgFile["prefix"] == "@")
+    stopWithError(
+      "The currently selected command prefix cannot be used. Please change it in the config file."
+    );
+
   // Append defaults
-  return Object.assign(configDefaults, cfgFile);
+  return cfgFile;
 };
