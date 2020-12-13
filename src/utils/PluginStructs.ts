@@ -30,31 +30,37 @@ class Plugin {
   };
 }
 
-export type UsageArray = Array<
-  | {
-      /**
-       * Keywords for the help plugin's indexer.
-       *
-       * These are used for finding this example object
-       * when using the help command.
-       */
-      keywords?: string[];
-      /**
-       * The usage example without the command name.
-       */
-      example: string;
-      /**
-       * An explanation to the given example for what it does.
-       */
-      description: string;
-      /**
-       * Subsequent examples and explanations under the same topic.
-       * Note that only the top-most example objects are evaluated when using `!help`.
-       */
-      children?: UsageArray;
-    }
-  | string
->;
+export type UsageObject = {
+  /**
+   * Arguments for which the help plugin should show
+   * the contents of this object to the user.
+   */
+  keywords?: string[];
+  /**
+   * The usage example for a specific argument without the command name.
+   */
+  example: string;
+  /**
+   * An explanation to the given example for what it does.
+   */
+  description: string;
+  /**
+   * Reserved space for explaining the arguments in the example.
+   * These are shown to the user if they specify their help request to the given argument.
+   */
+  arguments?: {
+    /**
+     * Name of the argument
+     */
+    name: string;
+    /**
+     * A description of the argument
+     */
+    description: string;
+  }[];
+};
+
+export type UsageArray = Array<UsageObject | string>;
 
 export class CommandPlugin extends Plugin {
   /**
@@ -87,6 +93,14 @@ export class CommandPlugin extends Plugin {
   usage: UsageArray = [];
 
   /**
+   * AUTOMATICALLY generated cache for making help indexing more efficient.
+   * @readonly Should only be altered by registerCommand().
+   */
+  USAGE_INDEX_CACHE: {
+    [key: string]: number;
+  } = {};
+
+  /**
    * Command usage cooldown
    * @default 5
    */
@@ -101,8 +115,18 @@ export class CommandPlugin extends Plugin {
     console.error("Command function not implemented!");
   };
 
-  registerCommand = (): void => {
+  protected registerCommand = (): void => {
     if (!this.command) throw new Error("Command name not implemented!");
+
+    // Populate index cache
+    this.usage.forEach((syntax, index) => {
+      if (typeof syntax !== "string" && syntax.keywords && syntax.keywords.length > 0) {
+        syntax.keywords.forEach(keyword => {
+          this.USAGE_INDEX_CACHE[keyword] = index;
+        });
+      }
+    });
+
     this.bot.commands.set(this.command.toLowerCase(), this);
   };
 

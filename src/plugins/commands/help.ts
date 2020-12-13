@@ -1,4 +1,4 @@
-import { CommandPlugin } from "../../utils/PluginStructs";
+import { CommandPlugin, UsageObject } from "../../utils/PluginStructs";
 import { EmbedField, Message, MessageEmbed, MessageEmbedOptions } from "discord.js";
 
 /**
@@ -54,6 +54,8 @@ export default class Help extends CommandPlugin {
         ? proposedCommand.split(" ")[0]
         : proposedCommand[0];
 
+    const formattedCommandName = prefix + commandName;
+
     /**
      * The command plugin object
      */
@@ -65,7 +67,7 @@ export default class Help extends CommandPlugin {
       this.sendHelpEmbed(
         message,
         {
-          title: `Couldn't find command \`${prefix + commandName}\``,
+          title: `Couldn't find command \`${formattedCommandName}\``,
           description: `You can retrieve a list of all available commands by using \`${prefix}help\`.`,
           color: 12725549,
         },
@@ -77,7 +79,32 @@ export default class Help extends CommandPlugin {
     const fields: EmbedField[] = [];
 
     // Local constants for the plugin's properties
-    const { description, aliases, usage, adminOnly } = cmd;
+    const { aliases, usage, adminOnly } = cmd;
+    let { description } = cmd;
+
+    /**
+     * Contains information about a specific command argument
+     * if there is any available in one of the usage objects.
+     */
+    let argumentDetails: undefined | UsageObject;
+
+    /**
+     * If the user sends another value, we assume they want to inqure about that specific command argument,
+     * in which case we reuse the following instructions, but tweak it to show argument specific details.
+     *
+     * The block below uses an indexing cache to find the position of an available UsageObject to the given argument.
+     * If there is none, we assume the argument doesn't exist and return to printing the default command help dialog.
+     */
+    if (proposedCommand[1]) {
+      const index = cmd.USAGE_INDEX_CACHE[proposedCommand[1]];
+      if (typeof index == "number") {
+        const usageExample = cmd.usage[index];
+        if (typeof usageExample !== "string") {
+          argumentDetails = usageExample;
+          description = usageExample.description;
+        }
+      }
+    }
 
     // Additional fields depending on what values are available in a given command plugin
     if (aliases && aliases.length > 0)
@@ -86,7 +113,7 @@ export default class Help extends CommandPlugin {
         value: aliases.map(alias => prefix + alias).join(", "),
         inline: false,
       });
-    if (usage && usage.length > 0)
+    if (usage && usage.length > 0 && !argumentDetails)
       fields.push({
         name: "Usage Examples:",
         value: usage
@@ -96,7 +123,7 @@ export default class Help extends CommandPlugin {
 
             // Return syntax example and description, if available
             return (
-              `\`${prefix + commandName} ${example}\`` +
+              `\`${formattedCommandName} ${example}\`` +
               (description ? ` - _${description}_` : "")
             );
           })
@@ -106,14 +133,37 @@ export default class Help extends CommandPlugin {
     if (!adminOnly)
       fields.push({
         name: "Permissions",
-        value: "👥 This command may be used without special permissions",
+        value: "👥 This command may be used by every user in this channel",
         inline: false,
       });
+    if (argumentDetails) {
+      argumentDetails.arguments?.forEach(subArgument => {
+        fields.push({
+          name: subArgument.name,
+          value: subArgument.description,
+          inline: true,
+        });
+      });
+    }
+
+    // Adapts title contents based on whether command or subsequent argument details are shown.
+    const title =
+      (argumentDetails ? "" : "About ") +
+      formattedCommandName +
+      (argumentDetails ? ` ${argumentDetails.example}` : "");
+
+    // Add a helpful footer if there are more infos available for subsequent arguments
+    let footer;
+    if (Object.values(cmd.USAGE_INDEX_CACHE).length > 0 && !argumentDetails)
+      footer = {
+        text: "​\n👀 Some command arguments have additional information available here.",
+      };
 
     this.sendHelpEmbed(message, {
-      title: `About ${prefix + commandName}`,
+      title,
       description,
       fields,
+      footer,
     });
   };
 
