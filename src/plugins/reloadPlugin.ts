@@ -57,8 +57,26 @@ export default class PluginReloader extends CommandPlugin {
       message.react("✅");
     } catch (error) {
       console.error(error);
+
+      let errorMsg =
+        "Couldn't retrieve error details, please take a look at the console.";
+
+      if (
+        typeof error.message !== "undefined" &&
+        typeof error.message.toString !== "undefined"
+      ) {
+        /**
+         * Removing ANSI styling to make the output more readable on Discord
+         */
+        errorMsg = error.message.toString().replace(
+          // eslint-disable-next-line no-control-regex
+          /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+          ""
+        );
+      }
+
       message.channel.send(
-        `There was an error while reloading a command \`${command.command}\`:\n\`${error.message}\``
+        `❌ There was an error while reloading the command \`${command.command}\`:\n\`\`\`${errorMsg}\`\`\``
       );
     }
   };
