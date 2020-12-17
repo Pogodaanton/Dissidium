@@ -50,13 +50,18 @@ export type UsageObject = {
    */
   arguments?: {
     /**
-     * Name of the argument
+     * Name of the argument.
      */
     name: string;
     /**
-     * A description of the argument
+     * A description of the argument.
      */
     description: string;
+    /**
+     * Marks the argument as not mandatory.
+     * Note that optional arguments may only come **after** mandatory ones.
+     */
+    optional?: boolean;
   }[];
 };
 

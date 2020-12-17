@@ -139,7 +139,7 @@ export default class Help extends CommandPlugin {
     if (argumentDetails) {
       argumentDetails.arguments?.forEach(subArgument => {
         fields.push({
-          name: subArgument.name,
+          name: subArgument.name + (subArgument.optional ? " - Optional" : ""),
           value: subArgument.description,
           inline: true,
         });
@@ -156,7 +156,7 @@ export default class Help extends CommandPlugin {
     let footer;
     if (Object.values(cmd.USAGE_INDEX_CACHE).length > 0 && !argumentDetails)
       footer = {
-        text: "​\n👀 Some command arguments have additional information available here.",
+        text: "​\n👀 Some command arguments have additional information available.",
       };
 
     this.sendHelpEmbed(message, {
