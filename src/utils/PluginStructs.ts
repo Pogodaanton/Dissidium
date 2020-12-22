@@ -116,7 +116,11 @@ export class CommandPlugin extends Plugin {
    */
   adminOnly = true;
 
-  execute: (message: Message, args: string[], sendHelp: () => void) => void = () => {
+  execute: (
+    message: Message,
+    args: string[],
+    sendHelp: (args?: string[]) => void
+  ) => void = () => {
     console.error("Command function not implemented!");
   };
 

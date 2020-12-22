@@ -9,8 +9,8 @@ export default class CommandMan extends Plugin {
   static dependencies = ["databaseMan"];
   databaseMan = this.bot.plugins.get("DatabaseMan") as DatabaseMan;
 
-  sendHelp = (message: Message, commandName: string) => (): void => {
-    return this.bot.commands.get("help")?.execute(message, [commandName], () => {
+  sendHelp = (message: Message, commandName: string) => (args: string[] = []): void => {
+    return this.bot.commands.get("help")?.execute(message, [commandName, ...args], () => {
       return;
     });
   };
