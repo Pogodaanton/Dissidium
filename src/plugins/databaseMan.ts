@@ -75,6 +75,7 @@ const dbConfig = new Config(dbPath, true, false, "/");
 
 export default class DatabaseMan extends Plugin {
   db: JsonDB = new JsonDB(dbConfig);
+  dbPath = dbPath;
 
   /**
    * Seperate guild checker for easier i18n support
