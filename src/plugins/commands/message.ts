@@ -140,6 +140,13 @@ export default class MessageMan extends CommandPlugin {
     "DatabaseMan"
   ) as DatabaseMan;
 
+  /**
+   * Generates a discohook editor short-link.
+   * If a messageName is given, the saved message's data will be included in the short-link.
+   *
+   * @param guild Guild class (usually retrieved from message.guild).
+   * @param messageName Name of the saved message to edit
+   */
   private generateEditorURL = async (
     guild: Guild | null,
     messageName?: string
@@ -170,9 +177,17 @@ export default class MessageMan extends CommandPlugin {
     return "https://discohook.org/";
   };
 
-  private getMessagesDirectory = (): string => {
+  /**
+   * Retrieves the path to a messages savefile.
+   * @param id Message savefile identifier. If left empty, its directory is returned.
+   */
+  private getMessagePath = (id = ""): string => {
     if (!this.databaseMan?.dbPath) throw new Error("Couldn't find save path...");
-    return path.resolve(this.databaseMan?.dbPath, "../messages/");
+    return path.resolve(
+      this.databaseMan?.dbPath,
+      "../messages/",
+      id ? `./${id}.json` : ""
+    );
   };
 
   getMessageInfo = async (
@@ -204,11 +219,8 @@ export default class MessageMan extends CommandPlugin {
       typeof data === "string" ? await this.getMessageInfo(guild, data) : data;
 
     // Read message from JSON file
-    const msgDir = this.getMessagesDirectory();
-    const contents = await fs.readFile(
-      path.resolve(msgDir, `./${messageInfo.id}.json`),
-      "utf-8"
-    );
+    const msgPath = this.getMessagePath(messageInfo.id);
+    const contents = await fs.readFile(msgPath, "utf-8");
 
     // Parse JSON
     const messageObj: MessageObject | undefined = JSON.parse(contents);
@@ -284,14 +296,13 @@ export default class MessageMan extends CommandPlugin {
         })
       );
     } catch (err) {
-      sendError(msg, err, 8);
+      sendError(msg, err);
     }
   };
 
   executeSet = async (msg: Message, args: string[]): Promise<void> => {
     const { guild, author, createdTimestamp } = msg;
-    if (!this.databaseMan?.dbPath) return sendError(msg, "Couldn't find save path...");
-    const msgDir = path.resolve(this.databaseMan?.dbPath, "../messages/");
+    const msgDir = this.getMessagePath();
 
     if (args.length < 2 || !args[0] || !args[1])
       return sendError(msg, "You need to specify a message name and a valid short-link.");
@@ -414,8 +425,10 @@ export default class MessageMan extends CommandPlugin {
       if (channelName) proposedChannel = findChannel(guild, channelName);
       // Retrieve and send message
       await this.sendMessage(guild, proposedChannel, messageName);
+
+      message.react("✅");
     } catch (err) {
-      return sendError(message, err, 8);
+      return sendError(message, err);
     }
   };
 
@@ -426,14 +439,14 @@ export default class MessageMan extends CommandPlugin {
       const { guild } = message;
       const messageName = args[0];
       const messageInfo = await this.getMessageInfo(guild, messageName);
-      const messageDirectory = this.getMessagesDirectory();
+      const messageDirectory = this.getMessagePath();
 
       await this.databaseMan?.deleteGuildData(guild, `messages/${messageName}`);
       await fs.unlink(path.resolve(messageDirectory, `./${messageInfo.id}.json`));
 
       message.react("✅");
     } catch (err) {
-      sendError(message, err, 8);
+      sendError(message, err);
     }
   };
 
