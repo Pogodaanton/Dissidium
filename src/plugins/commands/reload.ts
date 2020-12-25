@@ -9,6 +9,7 @@ import { sendError } from "../../utils";
  */
 export default class PluginReloader extends CommandPlugin {
   command = "reload";
+  aliases = ["rl"];
   usage: UsageArray = [
     {
       example: "<COMMAND NAME>",
@@ -29,8 +30,12 @@ export default class PluginReloader extends CommandPlugin {
     message.react("✅");
   };
 
-  execute = async (message: Message, args: string[]): Promise<void> => {
-    if (!args[0]) return;
+  execute = async (
+    message: Message,
+    args: string[],
+    getHelp: () => void
+  ): Promise<void> => {
+    if (!args[0]) return getHelp();
 
     const commandName = args[0].toLowerCase();
 
