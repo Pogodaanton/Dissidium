@@ -1,15 +1,24 @@
 import { join } from "path";
-import Plugin, { CommandPlugin } from "../utils/PluginStructs";
+import Plugin, { CommandPlugin, UsageArray } from "../../utils/PluginStructs";
 import { Message } from "discord.js";
-import DatabaseMan from "./databaseMan";
-import { sendError } from "../utils";
+import DatabaseMan from "../databaseMan";
+import { sendError } from "../../utils";
 
 /**
  * A command to reload parts of the command parser
  */
 export default class PluginReloader extends CommandPlugin {
   command = "reload";
-  args = ["existing-command-name"];
+  usage: UsageArray = [
+    {
+      example: "<COMMAND NAME>",
+      description: "Reloads the plugin for a given command.",
+    },
+    {
+      example: "db",
+      description: "Reloads the database.",
+    },
+  ];
 
   reloadDatabase = async (message: Message): Promise<void> => {
     const db = this.bot.plugins.get("DatabaseMan") as DatabaseMan | undefined;
@@ -42,7 +51,7 @@ export default class PluginReloader extends CommandPlugin {
 
     let commandsPath = this.bot.pluginPaths.get("commands");
     if (!commandsPath) return sendError(message, "No path for command plugins assigned.");
-    commandsPath = join(__dirname, "../", commandsPath, "./" + command.command);
+    commandsPath = join(__dirname, "../../", commandsPath, "./" + command.command);
 
     delete require.cache[require.resolve(commandsPath)];
     await this.bot.unloadPlugin(command);
