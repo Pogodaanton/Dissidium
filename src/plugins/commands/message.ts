@@ -200,7 +200,7 @@ export default class MessageMan extends CommandPlugin {
         guild,
         `messages/${messageName}`
       )) || null;
-    if (!message) throw new Error("Message not found");
+    if (!message) throw new Error("No message with given name was found");
 
     return message;
   };
