@@ -1,4 +1,4 @@
-import { Guild, GuildChannel, Message, TextChannel } from "discord.js";
+import { Guild, GuildChannel, Message, Role, TextChannel } from "discord.js";
 
 export const sendError = (
   message: Message,
@@ -6,7 +6,11 @@ export const sendError = (
   cooldown = 10
 ): void => {
   message.channel.send(`:x: ${errorMessage}`).then(msg => {
-    if (cooldown > 0 && msg.deletable) msg.delete({ timeout: cooldown * 1000 });
+    if (cooldown > 0 && msg.deletable) {
+      const timeout = cooldown * 1000;
+      msg.delete({ timeout });
+      setTimeout(() => message.react("❌"), timeout);
+    }
   });
 };
 
@@ -27,3 +31,21 @@ export const findChannel = (guild: Guild | null, channelName: string): TextChann
 
   return foundChannel as TextChannel;
 };
+
+export const findRole = (guild: Guild | null, roleName: string): Role => {
+  let foundRole: Role | undefined;
+  const matcher = /<@([0-9]*)>/g.exec(roleName);
+
+  if (matcher) {
+    foundRole = guild?.roles.cache.get(matcher[1]);
+  } else {
+    foundRole = guild?.roles.cache.find(role => role.name === roleName);
+  }
+
+  if (!foundRole || typeof foundRole === "undefined")
+    throw new Error("Role with the given name could not be found.");
+
+  return foundRole;
+};
+
+export const alphaNumericRegex = /[^A-Za-z0-9_-]/g;
