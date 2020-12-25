@@ -121,17 +121,20 @@ export default class DatabaseMan extends Plugin {
    * @param guild The guild you want to look into
    * @param path The path to the array you want to access seperated with `/`
    * @param needle The string that needs to be found in the array
+   * @param needleKey Use this parameter if the needle is inside of an object. It will specify which object key to look for.
    * @memberof DatabaseMan
    */
   getGuildDataIndex = async (
     guild: Guild | null,
     path: string,
-    needle: string
+    needle: string,
+    needleKey?: string
   ): Promise<number> => {
     if (!this.checkGuild(guild)) return -1;
     return this.db.getIndex(
       `/${guild.id}${path.startsWith("/") ? "" : "/"}${path}`,
-      needle
+      needle,
+      needleKey
     );
   };
 
@@ -164,18 +167,20 @@ export default class DatabaseMan extends Plugin {
    * @param guild The guild you want to remove data in
    * @param path The path to the data you want to delete sperated with `/`
    * @param arrayNeedle The data you look for in an array you defined in `path`. If found, only the entry will be removed.
+   * @param arrayNeedleKey Use this parameter if the needle is inside of an object. It will specify which object key to look for.
    * @memberof DatabaseMan
    */
   deleteGuildData = async <T>(
     guild: Guild | null,
     path: string,
-    arrayNeedle?: T
+    arrayNeedle?: T,
+    arrayNeedleKey?: string
   ): Promise<void> => {
     if (!this.checkGuild(guild)) return;
     const pathPrefix = `/${guild.id}${path.startsWith("/") ? "" : "/"}`;
 
     if (arrayNeedle) {
-      const index = this.db.getIndex(pathPrefix + path, arrayNeedle + "");
+      const index = this.db.getIndex(pathPrefix + path, arrayNeedle + "", arrayNeedleKey);
       return this.db.delete(pathPrefix + path + "[" + index + "]");
     }
 
