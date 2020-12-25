@@ -121,6 +121,9 @@ export default class Help extends CommandPlugin {
             const example = typeof syntax == "string" ? syntax : syntax.example;
             const description = typeof syntax == "string" ? "" : syntax.description;
 
+            // Create divider if example field is empty
+            if (example === "") return "";
+
             // Return syntax example and description, if available
             return (
               `\`${formattedCommandName} ${example}\`` +
