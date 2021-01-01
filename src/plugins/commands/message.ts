@@ -218,6 +218,9 @@ export default class MessageMan extends CommandPlugin {
     const messageInfo =
       typeof data === "string" ? await this.getMessageInfo(guild, data) : data;
 
+    // Failsafe for bad messageInfo data
+    if (!messageInfo.id) throw new Error("Invalid message ID");
+
     // Read message from JSON file
     const msgPath = this.getMessagePath(messageInfo.id);
     const contents = await fs.readFile(msgPath, "utf-8");
@@ -241,27 +244,26 @@ export default class MessageMan extends CommandPlugin {
     guild: Guild | null,
     channel: TextChannel | DMChannel | NewsChannel,
     messageName: string
-  ): Promise<Message> => {
+  ): Promise<Message[]> => {
     const messageData = await this.getMessageObject(guild, messageName);
+    const messagesSent: Message[] = [];
 
     // Send message with no embeds
     if (!messageData.embeds) {
-      return await channel.send(messageData.content);
+      messagesSent.push(await channel.send(messageData.content));
+    } else {
+      // Send message with embeds
+      // Bots may only post one embed pro message, hence this workaround.
+      for (let i = 0; i < messageData.embeds.length; i++) {
+        messagesSent.push(
+          await channel.send(i === 0 ? messageData.content : "", {
+            embed: messageData.embeds[i],
+          })
+        );
+      }
     }
 
-    // Send message with embeds
-    // Note that bots may only post one embed pro message
-    let lastSentMessage: Promise<Message> | undefined;
-    for (let i = 0; i < messageData.embeds.length; i++) {
-      lastSentMessage = channel.send(i === 0 ? messageData.content : "", {
-        embed: messageData.embeds[i],
-      });
-    }
-
-    if (typeof lastSentMessage === "undefined")
-      throw new Error("Message sending unsuccessful...");
-
-    return await lastSentMessage;
+    return messagesSent;
   };
 
   executeEditor = async (msg: Message, args: string[]): Promise<void> => {
@@ -386,7 +388,7 @@ export default class MessageMan extends CommandPlugin {
 
       return `**${name}** | Last edited by ${username} @ ${new Date(
         obj.lastEditedDate
-      ).toLocaleString(message.author.locale)}`;
+      ).toLocaleString(message.author.locale || "")}`;
     });
 
     message.channel.send(
