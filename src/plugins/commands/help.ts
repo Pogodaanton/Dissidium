@@ -127,7 +127,7 @@ export default class Help extends CommandPlugin {
             // Return syntax example and description, if available
             return (
               `\`${formattedCommandName} ${example}\`` +
-              (description ? ` - _${description}_` : "")
+              (description ? `\n_ ​ _⤷ _${description}_` : "")
             );
           })
           .join("\n"),
