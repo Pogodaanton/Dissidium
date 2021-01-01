@@ -12,7 +12,13 @@ import {
   User,
 } from "discord.js";
 import DatabaseMan, { GuildOrGuildID } from "../databaseMan";
-import { alphaNumericRegex, findChannel, findRole, sendError } from "../../utils";
+import {
+  alphaNumericRegex,
+  findChannel,
+  findRole,
+  isTextChannel,
+  sendError,
+} from "../../utils";
 import MessageMan from "./message";
 
 interface MessagePosData {
@@ -135,7 +141,45 @@ export class ReactRoleChainListener {
     return configIndex;
   };
 
-  private prepareUserRoleProposal = (userID: PartialUser["id"]): void => {
+  /*
+  private fetchUserReactions = async (userID: PartialUser["id"]): Promise<void> => {
+    const messages = this.msgMap.keyArray();
+    for (const messageID of messages) {
+      try {
+        const configIndex = this.msgMap.get(messageID);
+        if (!configIndex) continue;
+        const config = this.configs[configIndex];
+        if (!config) continue;
+
+        const channel = this.guild.channels.cache.get(
+          config.observables.channelID
+        ) as TextChannel;
+        if (!channel || channel.type !== "text") continue;
+        const message = await channel.messages.fetch(messageID);
+        if (!message) continue;
+
+        const existingReaction = message.reactions.cache.find(reaction => {
+          return (
+            reaction.users.cache.has(userID) &&
+            config.reactions.some(pair => pair.emoji === reaction.emoji.name)
+          );
+        });
+        if (!existingReaction) continue;
+        const reactionPair = config.reactions.find(
+          pair => pair.emoji === existingReaction.emoji.name
+        );
+        if (!reactionPair) continue;
+
+        this.userRoleProposals[userID][configIndex] = reactionPair.role;
+      } catch (err) {
+        console.error("[prepareUserRoleProposal]", err);
+        continue;
+      }
+    }
+  };
+  */
+
+  private prepareUserRoleProposal = async (userID: PartialUser["id"]): Promise<void> => {
     if (!this.userRoleProposals[userID]) this.userRoleProposals[userID] = {};
   };
 
@@ -179,7 +223,7 @@ export class ReactRoleChainListener {
     if (!reactionPair) return;
 
     // Update role proposal list
-    this.prepareUserRoleProposal(user.id);
+    await this.prepareUserRoleProposal(user.id);
     this.userRoleProposals[user.id][configIndex] = reactionPair.role;
 
     // Reset timeout
@@ -216,7 +260,7 @@ export class ReactRoleChainListener {
         return;
       }
 
-      this.prepareUserRoleProposal(user.id);
+      await this.prepareUserRoleProposal(user.id);
       delete this.userRoleProposals[user.id][configIndex];
 
       // Set timeout for possible removal of rest of roles
@@ -426,7 +470,7 @@ export default class ReactRole extends CommandPlugin {
   forEachConfigChainMember = async (
     guild: GuildOrGuildID,
     chainRoot: string,
-    callbackFn: (configName: string, index: number) => void
+    callbackFn: (configName: string, index: number) => void | Promise<void>
   ): Promise<void> => {
     let index = 0;
     const recursiveFn = async (linker: string): Promise<void> => {
@@ -437,7 +481,7 @@ export default class ReactRole extends CommandPlugin {
           `reactrole/link/linkers/${linker}`
         )) || "";
 
-      callbackFn(linker, index);
+      await callbackFn(linker, index);
       if (!linkeeRight) return;
       index++;
 
@@ -614,6 +658,20 @@ export default class ReactRole extends CommandPlugin {
         chainRootName
       );
     }
+  };
+
+  // Removes old reactions and adds the ones we listen for
+  resetReactions = async (guild: Guild, config: ReactRoleConfig): Promise<void> => {
+    if (!config.observables.channelID) return;
+    const channel = guild.channels.cache.get(config.observables.channelID);
+    if (!channel || !isTextChannel(channel)) return;
+    const lastMessageID =
+      config.observables.messageIDs[config.observables.messageIDs.length - 1];
+    const message = await channel.messages.fetch(lastMessageID);
+    if (!message) return;
+
+    await message.reactions.removeAll();
+    for (const pair of config.reactions) await message.react(pair.emoji);
   };
 
   executeAdd = async (
@@ -1055,6 +1113,20 @@ export default class ReactRole extends CommandPlugin {
     }
   };
 
+  executeClear = async (message: Message, args: string[]): Promise<void> => {
+    const { guild } = message;
+    const [configName] = args;
+    if (!configName || !guild)
+      return sendError(message, "You need a config name for this to work.");
+
+    try {
+      const config = await this.getConfig(guild, configName);
+      await this.resetReactions(guild, config);
+    } catch (err) {
+      return sendError(message, err);
+    }
+  };
+
   execute = (
     message: Message,
     args: string[],
@@ -1092,6 +1164,10 @@ export default class ReactRole extends CommandPlugin {
 
       case "channel":
         this.executeChannel(message, args, getHelp);
+        break;
+
+      case "clearreactions":
+        this.executeClear(message, args);
         break;
 
       case "list":
@@ -1146,23 +1222,29 @@ export default class ReactRole extends CommandPlugin {
         );
 
         // If the config has no observable, it is not in use.
-        const config = configs[chainRoot];
-        if (!config || !config.observables.channelID) continue;
+        const chainRootConfig = configs[chainRoot];
+        if (!chainRootConfig || !chainRootConfig.observables.channelID) continue;
+        await this.resetReactions(guild, chainRootConfig);
 
-        const listener = new ReactRoleChainListener(this.client, guild, config);
-        await this.forEachConfigChainMember(guild, chainRoot, (configName, i) => {
-          // This is the second time this function is executed,
-          // but is needed to mark configs after configNames[0] as analysed.
-          removeConfigFromArray(configName);
+        const listener = new ReactRoleChainListener(this.client, guild, chainRootConfig);
+        await this.forEachConfigChainMember(
+          guild,
+          chainRoot,
+          async (configName, i): Promise<void> => {
+            // This is the second time this function is executed,
+            // but is needed to mark configs after configNames[0] as analysed.
+            removeConfigFromArray(configName);
 
-          // Chain root is already being observed by the listener
-          if (i < 1) return;
+            // Chain root is already being observed by the listener
+            if (i < 1) return;
 
-          // Append each linked member to the chain listener
-          const linkeeConfig = configs[configName];
-          if (!linkeeConfig) return;
-          listener.addConfig(linkeeConfig);
-        });
+            // Append each linked member to the chain listener
+            const linkeeConfig = configs[configName];
+            if (!linkeeConfig) return;
+            await this.resetReactions(guild, linkeeConfig);
+            listener.addConfig(linkeeConfig);
+          }
+        );
 
         // Add new listener to listener hoarder
         this.listeners[chainRoot] = listener;
