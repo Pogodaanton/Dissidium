@@ -32,6 +32,10 @@ export const findChannel = (guild: Guild | null, channelName: string): TextChann
   return foundChannel as TextChannel;
 };
 
+export const isTextChannel = (channel: GuildChannel): channel is TextChannel => {
+  return channel.type === "text";
+};
+
 export const findRole = (guild: Guild | null, roleName: string): Role => {
   let foundRole: Role | undefined;
   const matcher = /<@([0-9]*)>/g.exec(roleName);
