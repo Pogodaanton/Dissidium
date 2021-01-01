@@ -18,6 +18,7 @@ export default class CommandMan extends Plugin {
   load = (): void => {
     this.client.on("message", async message => {
       if (
+        message.partial ||
         !message.content.startsWith(this.config.prefix) ||
         message.author.bot ||
         typeof this.databaseMan === "undefined"

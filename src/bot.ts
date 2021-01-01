@@ -8,7 +8,7 @@ export default class Dissidium {
   private isLoggedIn = false;
 
   config = getConfig();
-  client = new Discord.Client();
+  client = new Discord.Client({ partials: ["MESSAGE", "REACTION"] });
 
   pluginPaths = new Discord.Collection<string, string>();
   commands = new Discord.Collection<string, CommandPlugin>();
