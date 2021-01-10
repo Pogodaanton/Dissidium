@@ -1,5 +1,5 @@
 import getConfig from "./utils/configChecker";
-import Discord from "discord.js";
+import Discord, { Message } from "discord.js";
 import fs from "fs";
 import { join } from "path";
 import Plugin, { CommandPlugin } from "./utils/PluginStructs";
@@ -19,14 +19,16 @@ export default class Dissidium {
       console.log("Hello world!");
     });
 
-    process.once("SIGINT", async () => {
-      await this.cleanUp();
-      await this.client.user?.setStatus("invisible");
-      console.log("Shutting down...");
-
-      process.exit(0);
-    });
+    process.once("SIGINT", this.shutdown);
   }
+
+  shutdown = async (data: Message | number | string): Promise<void> => {
+    await this.cleanUp();
+    await this.client.user?.setStatus("invisible");
+    if (typeof data !== "string" && typeof data !== "number") await data.react("💤");
+
+    process.exit(typeof data === "number" ? data : 0);
+  };
 
   initPlugin = (path: string): void => {
     if (this.isLoggedIn) {

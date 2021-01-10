@@ -39,6 +39,10 @@ export default class PluginReloader extends CommandPlugin {
 
     const commandName = args[0].toLowerCase();
 
+    if (commandName === "exit") {
+      return await this.bot.shutdown(message);
+    }
+
     if (commandName === "db") {
       return this.reloadDatabase(message);
     }
