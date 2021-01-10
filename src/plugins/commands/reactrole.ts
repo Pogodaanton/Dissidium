@@ -991,6 +991,7 @@ export default class ReactRole extends CommandPlugin {
             configName = `__${configName}__`;
           configChain.push(configName);
         });
+        if (configChain.length <= 1) return `The config is not linked to anything.`;
         return configChain.join(" 🔗 ");
       };
 
@@ -999,16 +1000,6 @@ export default class ReactRole extends CommandPlugin {
         const config = await this.getConfig(guild, startingPoint);
         const fields: MessageEmbed["fields"] = [];
         let hasWarnings = false;
-
-        // Config chain generation
-        const chainRoot = await this.findConfigChainRoot(guild, startingPoint);
-        const formattedChain = await formatConfigChain(chainRoot, startingPoint);
-        if (formattedChain.trim().length > startingPoint.trim().length)
-          fields.push({
-            inline: false,
-            name: "Chain relations",
-            value: formattedChain,
-          });
 
         // Reaction list generation
         const { reactions } = config;
@@ -1020,6 +1011,8 @@ export default class ReactRole extends CommandPlugin {
 
           formattedReactions.push(`${reaction.emoji} => ${roleName}`);
         }
+        if (formattedReactions.length == 0)
+          formattedReactions.push(`There are no reactions set yet.`);
         fields.push({
           inline: false,
           name: "Reactions/Roles",
@@ -1036,6 +1029,16 @@ export default class ReactRole extends CommandPlugin {
           name: "Usage",
           value: formattedObservable,
         });
+
+        // Config chain generation
+        const chainRoot = await this.findConfigChainRoot(guild, startingPoint);
+        const formattedChain = await formatConfigChain(chainRoot, startingPoint);
+        if (formattedChain.trim().length > startingPoint.trim().length)
+          fields.push({
+            inline: false,
+            name: "Chain relation",
+            value: formattedChain,
+          });
 
         const sentMessage = await message.channel.send(
           new MessageEmbed({
