@@ -749,7 +749,8 @@ export default class ReactRole extends CommandPlugin {
     getHelp: (args?: string[]) => void
   ): Promise<void> => {
     const { guild } = message;
-    const [task, configName, proposedEmoji, proposedRole] = args;
+    const [task, configName, proposedEmoji, ...proposedRoleStrings] = args;
+    const proposedRole = proposedRoleStrings.join(" ");
     if (args.length < 3) return getHelp(["react"]);
 
     try {
