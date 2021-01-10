@@ -388,7 +388,7 @@ export default class MessageMan extends CommandPlugin {
 
       return `**${name}** | Last edited by ${username} @ ${new Date(
         obj.lastEditedDate
-      ).toLocaleString(message.author.locale || "")}`;
+      ).toLocaleString(message.author.locale || undefined)}`;
     });
 
     message.channel.send(
