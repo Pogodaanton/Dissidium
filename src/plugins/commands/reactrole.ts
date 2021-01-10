@@ -20,6 +20,7 @@ import {
   sendError,
 } from "../../utils";
 import MessageMan from "./message";
+import emojiRegex from "emoji-regex";
 
 interface MessagePosData {
   channelID: string;
@@ -433,6 +434,8 @@ export default class ReactRole extends CommandPlugin {
     [chainRootConfigName: string]: ReactRoleChainListener;
   } = {};
 
+  emojiRegex = emojiRegex();
+
   getConfig = async (
     guild: GuildOrGuildID,
     configName: string
@@ -754,10 +757,7 @@ export default class ReactRole extends CommandPlugin {
 
       if (task === "add") {
         // Does the emoji exist
-        const [emoji] =
-          proposedEmoji.match(
-            /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/
-          ) || [];
+        const [emoji] = proposedEmoji.match(this.emojiRegex) || [];
         if (!emoji) throw new Error("Invalid emoji, please try another one");
 
         // Does the role exist
@@ -773,17 +773,6 @@ export default class ReactRole extends CommandPlugin {
           )) ?? -1;
         if (objIndexWithRole >= 0)
           throw new Error("Role already bound to an emoji in this configuration");
-
-        // Is the emojie already used in the array
-        const objIndexWithEmoji =
-          (await this.databaseMan?.getGuildDataIndex(
-            guild,
-            `reactrole/config/${configName}/reactions`,
-            emoji,
-            "emoji"
-          )) ?? -1;
-        if (objIndexWithEmoji >= 0)
-          throw new Error("Emoji already bound to a role in this configuration");
 
         // Write data to array in DB
         await this.databaseMan?.setGuildData<ReactionPair>(
