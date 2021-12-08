@@ -5,4 +5,4 @@ dist
 db
 
 # Sensitive data
-src/config.json
+.env
