@@ -1,16 +1,26 @@
-import { SlashCommandBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
 import { Routes } from "discord-api-types/v9";
 import { config } from "./environmenter";
+import fs from "fs/promises";
+import path from "path";
 
-export default function () {
-  const commands = [
-    new SlashCommandBuilder().setName("ping").setDescription("Replies with pong!"),
-    new SlashCommandBuilder()
-      .setName("server")
-      .setDescription("Replies with server info!"),
-    new SlashCommandBuilder().setName("user").setDescription("Replies with user info!"),
-  ].map(command => command.toJSON());
+export const commandDirPath = "./plugins/commands/";
+
+export const getCommandFiles = async () => {
+  const files = await fs.readdir(path.resolve(__dirname, commandDirPath));
+  return files.filter(file => file.endsWith(".js"));
+};
+
+export default async function () {
+  const commands = [];
+  const commandFiles = await getCommandFiles();
+
+  for (const file of commandFiles) {
+    const {
+      default: { default: command },
+    } = await import(`${commandDirPath}${file}`);
+    commands.push(command.data.toJSON());
+  }
 
   const rest = new REST({ version: "9" }).setToken(config.token);
 
