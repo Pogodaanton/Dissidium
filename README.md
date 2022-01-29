@@ -1,13 +1,13 @@
 # Dissidium
+
 The Discord bot noone asked for. Configurable, expandable and (most importantly) maintainable.
 
+> **About this branch**: Due to slash-commands, the entire bot needs to be rewritten. Typing concerns and bad experience with TS and dynamic module loading brought the idea to switch to a C# based framework and bot. If the provided APIs reveal themself as insufficient, I will have to resort to JavaScript, so consider this branch more of a little exploration journey than a real project.
+
 # Usage
-No public builds available. You may build it though with `yarn build`. Else, the code has to run through ts-node.
-> In production use the release branch. The master branch might be broken at times.
 
 # Development
-The project is currently managed with `yarn classic`, hence there is no support for use with `npm`.
-Make use of the prepared prettier and eslint files when linting and formatting.
 
 # License
+
 MIT
