@@ -1,14 +1,24 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { CacheType, CommandInteraction } from "discord.js";
-import { CommandPlugin } from "../../types/DissidiumPlugin";
+import { staticImplements, ICommandPluginClass } from "../../types/DissidiumPlugin";
 
-export default {
-  data: new SlashCommandBuilder()
+@staticImplements<ICommandPluginClass<[]>>()
+export default class UserCommandPlugin {
+  static pluginName = "command-user";
+  static dependencies = [];
+
+  commandName = "user";
+  data = new SlashCommandBuilder()
     .setName("user")
-    .setDescription("Replies with user info!"),
-  async execute(interaction: CommandInteraction<CacheType>) {
+    .setDescription("Replies with user info!");
+
+  onCommandInteraction = async (interaction: CommandInteraction<CacheType>) => {
     await interaction.reply(
       `Your tag: ${interaction.user.tag}\nYour id: ${interaction.user.id}`
     );
-  },
-} as CommandPlugin;
+  };
+
+  start = async () => {};
+  stop = async () => {};
+}

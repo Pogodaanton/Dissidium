@@ -1,10 +1,20 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { CacheType, CommandInteraction } from "discord.js";
-import { CommandPlugin } from "../../types/DissidiumPlugin";
+import { staticImplements, ICommandPluginClass } from "../../types/DissidiumPlugin";
 
-export default {
-  data: new SlashCommandBuilder().setName("ping").setDescription("Replies with Pong!"),
-  async execute(interaction: CommandInteraction<CacheType>) {
+@staticImplements<ICommandPluginClass<[]>>()
+export default class PingCommandPlugin {
+  static pluginName = "command-ping";
+  static dependencies = [];
+
+  commandName = "ping";
+  data = new SlashCommandBuilder().setName("ping").setDescription("Replies with Pong!");
+
+  onCommandInteraction = async (interaction: CommandInteraction<CacheType>) => {
     await interaction.reply("Pong!");
-  },
-} as CommandPlugin;
+  };
+
+  start = async () => {};
+  stop = async () => {};
+}

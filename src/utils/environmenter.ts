@@ -1,6 +1,7 @@
 import { config as configurateDotenv } from "dotenv";
+import { DissidiumConfig } from "../types/Dissidium";
 
-export const config = {
+const config: DissidiumConfig = {
   token: "",
   guildId: "",
   clientId: "",
@@ -33,4 +34,6 @@ export function initConfig() {
   }
 
   config.clientId = process.env.CLIENT_ID;
+
+  return config;
 }
