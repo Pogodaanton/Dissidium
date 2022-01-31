@@ -1,7 +1,7 @@
 {
   "name": "dissidium",
   "description": "The Discord bot that does all the things you don't need!",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "main": "src/index.ts",
   "type": "module",
   "engines": {
