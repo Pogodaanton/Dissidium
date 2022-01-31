@@ -40,6 +40,7 @@ While I don't expect any contributions, here are some of my thoughts to consider
 - The baseline code in `src` should be kept simple and straightforward. Most components will make more sense in the modular `plugins` directory.
 - Plugins should be treated as separate modules. They may depend on other plugins, however, those need to be noted in the static `dependencies` array and retrieved through the constructor. Importing them manually is not advised.
 - Make sure to use the provided `.prettierrc` for formatting
+- You can run an auto-builder via `pnpm watch`. That said, you will need to restart the bot manually via `pnpm start`. This was done due to esbuild's insane building speeds and to prevent unnecessarily overflooding Discord's APIs.
 
 ## License
 
