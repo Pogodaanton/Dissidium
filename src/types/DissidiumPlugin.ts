@@ -21,12 +21,29 @@ export interface IDissidiumPluginClass extends IDissidiumPluginStatic {
 }
 
 interface IDissidiumPluginStatic {
+  /**
+   * The name the system will refer to the plugin as.
+   * Must be unique, case-sensitive
+   */
   pluginName: string;
+
+  /**
+   * A list of plugin names this plugin depends on.
+   * The given plugins will be injected as constructor parameters on initialization in the same order as they are in this array.
+   */
   dependencies: string[];
 }
 
 interface IDissidiumPluginObj {
+  /**
+   * An asynchronous start method typically ran after construction.
+   */
   start(): Promise<void>;
+  /**
+   * An asynchronous stop method ran before unloading the plugin.
+   *
+   * **Caution**: The current implementation of stop does not guarantee all dependencies to still be loaded. Do not use them in here.
+   */
   stop(): Promise<void>;
 }
 
@@ -41,8 +58,18 @@ export interface ICommandPluginClass<T extends any[]> extends IDissidiumPluginCl
 }
 
 interface ICommandPluginObj {
+  /**
+   * The commmand the user will have to input to invoke this plugin
+   */
   commandName: string;
+  /**
+   * Slash command metadata used for Discord command identification and registration
+   */
   data: SlashCommandBuilder;
+  /**
+   * Executes each time a user uses a slash command that refers to this class.
+   * @param interaction A live interaction object from Discord.js
+   */
   onCommandInteraction(interaction: CommandInteraction<CacheType>): Promise<void>;
 }
 
