@@ -5,7 +5,6 @@ import {
   isPluginClass,
 } from "../types/DissidiumPlugin";
 import fs from "fs/promises";
-import path from "path";
 import { DissidiumConfig } from "../types/Dissidium";
 
 /**
@@ -119,14 +118,13 @@ export default class Plugineer {
    * @param pluginDirPath The folder path to scan; All JavaScript files in here will be interpreted as plugins. Sub-directories are not read.
    */
   loadPlugins = async (pluginDirPath = "./plugins/") => {
-    const files = await fs.readdir(path.resolve(__dirname, pluginDirPath));
+    const absolutePluginPath = new URL(pluginDirPath, import.meta.url);
+    const files = await fs.readdir(absolutePluginPath);
     const pluginFileNames = files.filter(file => file.endsWith(".js"));
 
     const pluginsFound: string[] = [];
     for (const fileName of pluginFileNames) {
-      const {
-        default: { default: plugin },
-      } = await import(`${pluginDirPath}${fileName}`);
+      const { default: plugin } = await import(`${pluginDirPath}${fileName}`);
 
       if (!isPluginClass(plugin)) {
         console.log(
@@ -251,30 +249,5 @@ export default class Plugineer {
     this.plugins.set("client", createDummyPlugin("client"));
     this.plugins.set("config", createDummyPlugin("config"));
     this.plugins.set("plugineer", createDummyPlugin("plugineer"));
-
-    /*
-    // The constructor is used to create observers for plugin addition and removal in the main plugin list
-    // (Re-)Start plugin, if `Plugineer.plugins.set` is called
-    this.plugins.set = (
-      key: string,
-      value: DissidiumPlugin
-    ): Collection<string, DissidiumPlugin> => {
-      const oldVal = this.plugins.get(key);
-      if (oldVal) oldVal.stop();
-
-      value.start();
-      Map.prototype.set.call(this.plugins, key, value);
-
-      return this.plugins;
-    };
-
-    // Stop plugin before deleting it from the collection
-    this.plugins.delete = (key: string): boolean => {
-      const oldVal = this.plugins.get(key);
-      if (oldVal) oldVal.stop();
-
-      return Map.prototype.delete.call(this.plugins, key);
-    };
-    */
   }
 }

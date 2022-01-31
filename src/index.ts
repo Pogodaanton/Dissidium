@@ -19,6 +19,7 @@ async function shutdown(err?: Error) {
   console.log("Shutting down...");
   await plugineer.destroy();
   client.destroy();
+  console.log("Successful shutdown. Goodbye!\n");
 }
 
 // When the client is ready, run this code (only once)

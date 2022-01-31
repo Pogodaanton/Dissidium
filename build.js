@@ -1,15 +1,16 @@
-const { build } = require("esbuild");
-const path = require("path");
-const pkg = require(path.resolve("./package.json"));
-
-const external = [
-  ...Object.keys(pkg.dependencies || {}),
-  ...Object.keys(pkg.peerDependencies || {}),
-];
+import { build } from "esbuild";
+import { readFile } from "fs/promises";
 
 const shouldWatch = process.env.WITH_WATCH == 1;
 
 async function start() {
+  // Reading package.json and its dependencies for esbuild
+  const pkg = JSON.parse(await readFile(new URL("./package.json", import.meta.url)));
+  const external = [
+    ...Object.keys(pkg.dependencies || {}),
+    ...Object.keys(pkg.peerDependencies || {}),
+  ];
+
   // Dynamic resolving of plugins
   // Plugins should not be bundled to retain them modular
   const { globby } = await import("globby");
@@ -21,7 +22,7 @@ async function start() {
       bundle: true,
       minify: false,
       sourcemap: false,
-      format: "cjs",
+      format: "esm",
       target: "node16",
       entryPoints: [...pluginFiles, "./src/index.ts"],
       outdir: "./dist",

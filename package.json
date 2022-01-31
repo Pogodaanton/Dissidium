@@ -3,6 +3,10 @@
   "description": "The Discord bot that does all the things you don't need!",
   "version": "0.2.0",
   "main": "src/index.ts",
+  "type": "module",
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "license": "MIT",
   "scripts": {
     "clean": "rm -rf ./dist",
