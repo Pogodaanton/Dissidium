@@ -220,6 +220,26 @@ export default class Plugineer {
   };
 
   /**
+   * Gracefully stops each loaded plugin.
+   * The current rudimentary implementation does not check for dependencies.
+   */
+  destroy = async () => {
+    const pluginNames = this.plugins.keys();
+
+    for (
+      let pluginName = pluginNames.next();
+      !pluginName.done;
+      pluginName = pluginNames.next()
+    ) {
+      const plugin = this.plugins.get(pluginName.value);
+      if (!plugin) continue;
+
+      await plugin.stop();
+      this.plugins.delete(pluginName.value);
+    }
+  };
+
+  /**
    * Plugineer manages external plugin loading and plugin-side dependency-injection.
    * The objects in the parameters are used for passing over some data to the plugins, if necessary.
    *

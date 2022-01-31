@@ -12,10 +12,24 @@ const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
 // Construct plugin manager
 const plugineer = new Plugineer(client, config);
 
+// Setup shutdown system
+async function shutdown(err?: Error) {
+  if (err) console.error("Uncaught exception:", err);
+
+  console.log("Shutting down...");
+  await plugineer.destroy();
+  client.destroy();
+}
+
 // When the client is ready, run this code (only once)
 client.once("ready", async () => {
   await plugineer.loadPlugins();
   console.log("Ready!");
+
+  process
+    .on("SIGINT", shutdown)
+    .on("SIGTERM", shutdown)
+    .on("uncaughtException", shutdown);
 });
 
 // Login to Discord with your client's token
