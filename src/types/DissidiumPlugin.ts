@@ -1,4 +1,7 @@
-import { SlashCommandBuilder } from "@discordjs/builders";
+import {
+  SlashCommandBuilder,
+  SlashCommandSubcommandsOnlyBuilder,
+} from "@discordjs/builders";
 import { CommandInteraction, CacheType } from "discord.js";
 
 /**
@@ -65,7 +68,7 @@ interface ICommandPluginObj {
   /**
    * Slash command metadata used for Discord command identification and registration
    */
-  data: SlashCommandBuilder;
+  data: SlashCommandBuilder | SlashCommandSubcommandsOnlyBuilder;
   /**
    * Executes each time a user uses a slash command that refers to this class.
    * @param interaction A live interaction object from Discord.js
