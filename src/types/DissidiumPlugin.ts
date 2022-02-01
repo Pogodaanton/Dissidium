@@ -75,6 +75,20 @@ export abstract class CommandPlugin {
 }
 
 /**
+ * Custom error instance for command errors
+ */
+export class CommandError extends Error {
+  reason: string;
+  userCaused: boolean;
+
+  constructor(reason: string, userCaused = true) {
+    super("A command error occured");
+    this.reason = reason;
+    this.userCaused = userCaused;
+  }
+}
+
+/**
  * Tests an unknown object for it being a usable plugin for Dissidium
  * @param arg An unknown object
  * @returns A note to the compiler that the object is a valid DissidiumPlugin
@@ -100,6 +114,34 @@ export function isCommandPlugin(arg: unknown): arg is CommandPlugin {
     typeof examinee.data.description !== "string" ||
     typeof examinee.commandName !== "string" ||
     typeof examinee.onCommandInteraction !== "function"
+  )
+    return false;
+  return true;
+}
+
+/**
+ * Tests an unknown object for it being an error object
+ * @param arg An unknown object
+ * @returns A note to the compiler that the object is a valid Error
+ */
+export function isErrorObj(arg: unknown): arg is Error {
+  const examinee = arg as Error;
+  if (typeof examinee.name !== "string" || typeof examinee.name !== "string")
+    return false;
+  return true;
+}
+
+/**
+ * Tests an unknown object for it being a CommandError
+ * @param arg An unknown object
+ * @returns A note to the compiler that the object is a valid CommandError
+ */
+export function isCommandError(arg: unknown): arg is CommandError {
+  const examinee = arg as CommandError;
+  if (
+    !isErrorObj(examinee) ||
+    typeof examinee.reason !== "string" ||
+    typeof examinee.userCaused !== "boolean"
   )
     return false;
   return true;
