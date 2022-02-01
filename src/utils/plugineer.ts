@@ -6,6 +6,7 @@ import {
 } from "../types/DissidiumPlugin";
 import fs from "fs/promises";
 import { DissidiumConfig } from "../types/Dissidium";
+import EventEmitter from "events";
 
 /**
  * Generates an empty plugin instance that can be used to reserve a plugin spot
@@ -19,7 +20,7 @@ const createDummyPlugin = (pluginName: string) => ({
   stop: async () => {},
 });
 
-const pluginsAllowedToUsePlugineer = ["commandInteraction"];
+const pluginsAllowedToUsePlugineer = ["commandInteraction", "database"];
 
 export default class Plugineer {
   /**
@@ -55,6 +56,11 @@ export default class Plugineer {
   private resolverQueue: string[] = [];
 
   /**
+   * Event emiter instance for dependency resolve events
+   */
+  events = new EventEmitter();
+
+  /**
    * Recursively attempts to resolve plugins depending on newly loaded plugins found in `Plugineer.resolverQueue`
    */
   private resolveDependencies = async () => {
@@ -79,7 +85,8 @@ export default class Plugineer {
       const unresolvedDeps = this.dependees.get(dependeeName);
       if (!unresolvedDeps) continue;
       const idx = unresolvedDeps.indexOf(pluginName);
-      delete unresolvedDeps[idx];
+      if (idx < 0) continue;
+      unresolvedDeps.splice(idx, 1);
 
       // If there are some unresolved dependencies left, the plugin continues waiting
       if (unresolvedDeps.length > 0) {
@@ -106,6 +113,9 @@ export default class Plugineer {
       // Wait for plugin to start up
       await pluginObj.start();
 
+      // Emit dependency resolvance event
+      this.events.emit("dependency-resolved", dependeeName);
+
       // Other plugins might depend on this one
       this.resolverQueue.push(dependeeName);
     }
@@ -122,7 +132,9 @@ export default class Plugineer {
     const files = await fs.readdir(absolutePluginPath);
     const pluginFileNames = files.filter(file => file.endsWith(".js"));
 
-    const pluginsFound: string[] = [];
+    const pluginsLoaded: string[] = [];
+    const pluginsStalled: string[] = [];
+
     for (const fileName of pluginFileNames) {
       const { default: plugin } = await import(`${pluginDirPath}${fileName}`);
 
@@ -153,16 +165,14 @@ export default class Plugineer {
 
         const dependencyArr = this.dependencies.ensure(depName, () => []);
         dependencyArr.push(plugin.pluginName);
-        console.log(this.dependencies.get(depName));
         this.dependencies.set(depName, dependencyArr);
         openDependencies.push(depName);
       }
 
-      pluginsFound.push(plugin.pluginName);
-
       if (openDependencies.length > 0) {
         this.dependees.set(plugin.pluginName, openDependencies);
         this.uninitializedPlugins.set(plugin.pluginName, plugin);
+        pluginsStalled.push(plugin.pluginName);
       } else {
         // Dumb re-typing, as we need the static variables in objects, too.
         const pluginObj = this.initializePlugin(plugin);
@@ -174,10 +184,12 @@ export default class Plugineer {
 
         // Start resolve queue
         await this.resolveDependencies();
+
+        pluginsLoaded.push(plugin.pluginName);
       }
     }
 
-    return pluginsFound;
+    return { pluginsLoaded, pluginsStalled };
   };
 
   /**

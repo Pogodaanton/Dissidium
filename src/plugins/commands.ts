@@ -22,15 +22,44 @@ export default class CommandInteractionPlugin {
     private plugineer: Plugineer
   ) {}
 
+  // Command plugins we are still waiting for to have their dependencies resolved
+  stalledPlugins: string[] = [];
+
+  // Command plugins we still have to register
+  unregisteredPlugins: string[] = [];
+
   // Commands registry
   commands = new Collection<string, CommandPlugin>();
 
+  private checkForStalledPlugins = async () => {
+    if (this.plugineer.uninitializedPlugins.hasAny(...this.stalledPlugins)) return;
+
+    // Only continue if all stalled plugins have been initiated
+    this.plugineer.events.off("dependency-resolved", this.checkForStalledPlugins);
+    this.unregisteredPlugins = [...this.unregisteredPlugins, ...this.stalledPlugins];
+    this.stalledPlugins = [];
+
+    await this.registerCommands();
+  };
+
   private fetchCommands = async () => {
-    const detectedCommandPlugins = await this.plugineer.loadPlugins(
+    const { pluginsLoaded, pluginsStalled } = await this.plugineer.loadPlugins(
       "./plugins/commands/"
     );
 
-    for (const pluginName of detectedCommandPlugins) {
+    this.unregisteredPlugins = [...pluginsLoaded];
+    this.stalledPlugins = [...pluginsStalled];
+
+    if (this.stalledPlugins.length > 0) {
+      this.plugineer.events.on("dependency-resolved", this.checkForStalledPlugins);
+      return;
+    }
+
+    await this.registerCommands();
+  };
+
+  private registerCommands = async () => {
+    for (const pluginName of this.unregisteredPlugins) {
       const plugin = this.plugineer.plugins.get(pluginName);
       if (!plugin) continue;
 
@@ -43,6 +72,8 @@ export default class CommandInteractionPlugin {
 
       this.commands.set(plugin.commandName, plugin);
     }
+
+    await this.deployCommands();
   };
 
   private deployCommands = async () => {
@@ -83,7 +114,6 @@ export default class CommandInteractionPlugin {
 
   start = async () => {
     await this.fetchCommands();
-    await this.deployCommands();
 
     // Hooking to discord events
     this.client.on("interactionCreate", this.handleInteraction);
