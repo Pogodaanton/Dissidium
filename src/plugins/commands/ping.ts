@@ -12,7 +12,11 @@ export default class PingCommandPlugin {
   data = new SlashCommandBuilder().setName("ping").setDescription("Replies with Pong!");
 
   onCommandInteraction = async (interaction: CommandInteraction<CacheType>) => {
-    await interaction.reply("Pong!");
+    await interaction.reply({ content: "Pong!", fetchReply: true });
+    const creationTimestamp = new Date().getTime();
+    await interaction.editReply(
+      `Pong! Roundtrip latency: ${creationTimestamp - interaction.createdTimestamp}ms`
+    );
   };
 
   start = async () => {};
