@@ -281,30 +281,6 @@ export default class MessageCommand {
   };
 
   /**
-   * Sends an error message to the user.
-   *
-   * @param interaction A user command interaction object from Discord.js
-   * @param message The error message to send to the user
-   */
-  private sendError = async (
-    interaction: CommandInteraction<CacheType>,
-    message?: string | CommandError
-  ) => {
-    if (!message)
-      message = `We've encountered an unexpected error. If this happens regularly, please notify the server admin.`;
-
-    if (isCommandError(message))
-      message = message.userCaused
-        ? message.reason
-        : `Unexpected server error: ${message.reason}`;
-
-    return await interaction.reply({
-      ephemeral: true,
-      content: `:x: ${message}`,
-    });
-  };
-
-  /**
    * Executes each time a user uses the editor slash command.
    *
    * @param interaction A live interaction object from Discord.js that is guaranteed to come from a guild
@@ -528,51 +504,34 @@ export default class MessageCommand {
    * @param interaction A live interaction object from Discord.js
    */
   onCommandInteraction = async (interaction: CommandInteraction<CacheType>) => {
-    if (!interaction.inGuild()) {
-      await interaction.reply({
-        ephemeral: true,
-        content: "This command is only executable in server text chats.",
-      });
-      return;
-    }
+    if (!interaction.inGuild())
+      throw new CommandError("This command is only executable in guild text-channels.");
 
     const subcommand = interaction.options.getSubcommand(false);
 
-    try {
-      switch (subcommand) {
-        case "editor":
-          await this.onEditorCommand(interaction);
-          break;
+    switch (subcommand) {
+      case "editor":
+        await this.onEditorCommand(interaction);
+        break;
 
-        case "set":
-          await this.onSetCommand(interaction);
-          break;
+      case "set":
+        await this.onSetCommand(interaction);
+        break;
 
-        case "list":
-          await this.onListCommand(interaction);
-          break;
+      case "list":
+        await this.onListCommand(interaction);
+        break;
 
-        case "post":
-          await this.onPostCommand(interaction);
-          break;
+      case "post":
+        await this.onPostCommand(interaction);
+        break;
 
-        case "remove":
-          await this.onRemoveCommand(interaction);
-          break;
+      case "remove":
+        await this.onRemoveCommand(interaction);
+        break;
 
-        default:
-          throw new CommandError("Please use the available sub-commands.");
-      }
-    } catch (err) {
-      // Handle unexpected errors (We print them to the console)
-      if (!isCommandError(err)) {
-        console.error("/message", subcommand, "error:", err);
-        await this.sendError(interaction);
-        return;
-      }
-
-      // Handle expected (user) errors
-      await this.sendError(interaction, err);
+      default:
+        throw new CommandError("Please use the available sub-commands.");
     }
   };
 

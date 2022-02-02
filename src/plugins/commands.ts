@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { CacheType, Client, Collection, Interaction } from "discord.js";
+import {
+  CacheType,
+  Client,
+  Collection,
+  CommandInteraction,
+  Interaction,
+} from "discord.js";
 import { REST } from "@discordjs/rest";
 import { RESTPostAPIApplicationCommandsJSONBody, Routes } from "discord-api-types/v9";
 import {
@@ -7,6 +13,8 @@ import {
   IDissidiumPluginClass,
   CommandPlugin,
   isCommandPlugin,
+  CommandError,
+  isCommandError,
 } from "../types/DissidiumPlugin";
 import { DissidiumConfig } from "../types/Dissidium";
 import Plugineer from "../utils/plugineer";
@@ -95,6 +103,30 @@ export default class CommandInteractionPlugin {
     }
   };
 
+  /**
+   * Sends an error message to the user.
+   *
+   * @param interaction A user command interaction object from Discord.js
+   * @param message The error message to send to the user
+   */
+  private sendError = async (
+    interaction: CommandInteraction<CacheType>,
+    message?: string | CommandError
+  ) => {
+    if (!message)
+      message = `We've encountered an unexpected error. If this happens regularly, please notify the server admin.`;
+
+    if (isCommandError(message))
+      message = message.userCaused
+        ? message.reason
+        : `Unexpected server error: ${message.reason}`;
+
+    return await interaction.reply({
+      ephemeral: true,
+      content: `:x: ${message}`,
+    });
+  };
+
   private handleInteraction = async (interaction: Interaction<CacheType>) => {
     if (!interaction.isCommand()) return;
 
@@ -103,12 +135,16 @@ export default class CommandInteractionPlugin {
 
     try {
       await command.onCommandInteraction(interaction);
-    } catch (error) {
-      console.error(error);
-      await interaction.reply({
-        content: "There was an error while executing this command!",
-        ephemeral: true,
-      });
+    } catch (err) {
+      // Handle unexpected errors (We print them to the console)
+      if (!isCommandError(err)) {
+        console.error(`/${interaction.commandName} - Error:`, err);
+        await this.sendError(interaction);
+        return;
+      }
+
+      // Handle expected (user) errors
+      await this.sendError(interaction, err);
     }
   };
 
