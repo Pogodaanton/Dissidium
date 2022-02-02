@@ -429,6 +429,9 @@ export default class RoleselectorCommandPlugin {
     if (subcommand === "add") {
       const buttonLabel = options.getString("button-label", false) || undefined;
 
+      if (roleselector.options.length >= 25)
+        throw new CommandError("A role selector can't have more than 25 options.");
+
       roleselector.options.push({
         roleId: role.id,
         label: buttonLabel,
