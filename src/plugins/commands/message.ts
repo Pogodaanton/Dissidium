@@ -14,7 +14,6 @@ import { nanoid } from "nanoid";
 import {
   CommandError,
   ICommandPluginClass,
-  isCommandError,
   staticImplements,
 } from "../../types/DissidiumPlugin";
 import { SlashCommandBuilder } from "@discordjs/builders";
@@ -220,7 +219,7 @@ export default class MessageCommand {
    * @param messageName The unique identifier of the message
    * @returns A message metadata object
    */
-  private getMessageInfo = async (
+  getMessageInfo = async (
     guildId: Guild["id"],
     messageName: string
   ): Promise<MessageDBInfo | undefined> => {
@@ -483,8 +482,7 @@ export default class MessageCommand {
 
     // Get message info for file retrieval
     const messageInfo = await this.getMessageInfo(guildId, messageName);
-    if (!messageInfo)
-      throw new CommandError(`Message named "${messageName}" was not found.`);
+    if (!messageInfo) throw new CommandError(`Message "${messageName}" was not found.`);
 
     // Remove message info from guild database by mutating the database
     const messageInfos = await this.db.getGuildData<MessageDB>(guildId, "messages", {});
