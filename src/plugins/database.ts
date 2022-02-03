@@ -85,6 +85,15 @@ export default class DatabasePlugin {
   };
 
   /**
+   * Retrieve the IDs of all guilds the bot has data saved in.
+   * @returns An array of guild IDs
+   */
+  getRelevantGuilds = () => {
+    if (!this.db.data) throw new Error("Database unavailable");
+    return Object.keys(this.db.data.guilds);
+  };
+
+  /**
    * Saves local database to disk
    */
   save = async () => await this.db.write();
