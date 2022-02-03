@@ -196,7 +196,7 @@ export default class MessageCommand {
     const data = (await res.json()) as undefined | { url?: string };
 
     // Check for received data's integrity
-    if (!data || data.url !== "string")
+    if (!data || typeof data.url !== "string")
       throw new Error("Invalid response received from discohook.");
 
     return data.url;
