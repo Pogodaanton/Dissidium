@@ -2,7 +2,7 @@ import {
   SlashCommandBuilder,
   SlashCommandSubcommandsOnlyBuilder,
 } from "@discordjs/builders";
-import { CommandInteraction, CacheType } from "discord.js";
+import { CommandInteraction, CacheType, ButtonInteraction } from "discord.js";
 
 /**
  * Used for enforcing static variable implementation for classes
@@ -73,6 +73,13 @@ export abstract class CommandPlugin {
     interaction: CommandInteraction<CacheType>
   ): Promise<void>;
 }
+
+/**
+ * Custom interface for objects which have the ability to handle button commands
+ */
+export type ButtonCommandHandler = (
+  interaction: ButtonInteraction<CacheType>
+) => Promise<void>;
 
 /**
  * Custom error instance for command errors
