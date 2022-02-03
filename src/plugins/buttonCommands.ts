@@ -101,7 +101,6 @@ export default class ButtonInteractionPlugin {
     if (!interaction.isButton()) return;
 
     const { customId } = interaction;
-    console.log("Invoked button with id: " + customId);
     const buttonHandler = this.buttonHandlers.get(customId);
     if (!buttonHandler) return;
 
