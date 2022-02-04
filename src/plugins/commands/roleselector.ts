@@ -255,7 +255,7 @@ export default class RoleselectorCommandPlugin {
    * @param guildId The id of the guild the roleselectors belong to
    * @returns A mutable list of roleselectors from the database
    */
-  private getRoleselectors = async (guildId: Guild["id"]) =>
+  private getRoleselectors = async (guildId: Guild["id"]): Promise<RoleselectorDB> =>
     await this.db.getGuildData<RoleselectorDB>(guildId, "roleselectors", {});
 
   /**
@@ -463,8 +463,38 @@ export default class RoleselectorCommandPlugin {
    * @param interaction A live button interaction object from Discord.js that is guaranteed to come from a guild
    */
   private handleButtonInteraction = async (interaction: ButtonInteraction<CacheType>) => {
-    console.log("Invoked button with id: " + interaction.customId);
-    await interaction.reply({ ephemeral: true, content: "Holy crap, Lois, it worked!" });
+    // Make sure the guild is cached so we can safely manipulate user roles
+    if (interaction.guildId && !interaction.inCachedGuild())
+      await this.btnInteraction.fetchGuild(interaction.guildId);
+    if (!interaction.inCachedGuild()) return;
+
+    // Due to the steps above, we can assuredly say the guild is always cached.
+    const { customId, guildId } = interaction;
+    await interaction.deferUpdate();
+
+    // This should be the expected format. Anything else is negligible anyway.
+    const [configName, newRoleId] = customId.split(":");
+
+    // Get role selector config
+    const roleselectors = await this.getRoleselectors(guildId);
+    const roleselector = roleselectors[configName];
+    if (!roleselector) return;
+
+    // Match user for all roles in the selector
+    const removableRoles: Snowflake[] = [];
+    for (const roleId in roleselector.options) {
+      if (roleId === newRoleId) continue;
+      if (interaction.member.roles.cache.has(roleId)) removableRoles.push(roleId);
+    }
+
+    // Remove roles the user doesn't need anymore
+    if (removableRoles.length > 0) await interaction.member.roles.remove(removableRoles);
+
+    // Add new role
+    await interaction.member.roles.add(newRoleId);
+
+    // Edit button row
+    await interaction.editReply({});
   };
 
   /**
@@ -867,7 +897,7 @@ export default class RoleselectorCommandPlugin {
   private hydrateRoleselectors = async () => {
     const guildIds = this.db.getRelevantGuilds();
     for (const guildId of guildIds) {
-      const guild = this.btnInteraction.fetchGuild(guildId);
+      const guild = await this.btnInteraction.fetchGuild(guildId);
       if (!guild || !guild.available) {
         console.log(
           "Roleselector Hydration:",

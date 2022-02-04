@@ -71,7 +71,7 @@ export default class ButtonInteractionPlugin {
    * @param guildId The uninque identifier of the guild you want to fetch
    * @returns A hydrated guild object
    */
-  fetchGuild = (guildId: Snowflake) => this.client.guilds.cache.get(guildId);
+  fetchGuild = async (guildId: Snowflake) => await this.client.guilds.fetch(guildId);
 
   /**
    * Sends an error message to the user.
@@ -105,6 +105,10 @@ export default class ButtonInteractionPlugin {
     if (!buttonHandler) return;
 
     try {
+      // We strip away the plugin-specific prefix we use to keep the ids unique
+      const localIdStart = customId.indexOf(":");
+      interaction.customId = customId.substring(localIdStart + 1);
+
       await buttonHandler(interaction);
     } catch (err) {
       // Handle unexpected errors (We print them to the console)
