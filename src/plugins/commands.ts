@@ -4,7 +4,9 @@ import {
   Client,
   Collection,
   CommandInteraction,
+  Guild,
   Interaction,
+  Snowflake,
 } from "discord.js";
 import { REST } from "@discordjs/rest";
 import { RESTPostAPIApplicationCommandsJSONBody, Routes } from "discord-api-types/v9";
@@ -39,6 +41,10 @@ export default class CommandInteractionPlugin {
   // Commands registry
   commands = new Collection<string, CommandPlugin>();
 
+  /**
+   * Callback function for handling dependency resolvings.
+   * Some command plugins need others for them to work, so we wait loading them until their dependencies are loaded in.
+   */
   private checkForStalledPlugins = async () => {
     if (this.plugineer.uninitializedPlugins.hasAny(...this.stalledPlugins)) return;
 
@@ -48,8 +54,13 @@ export default class CommandInteractionPlugin {
     this.stalledPlugins = [];
 
     await this.registerCommands();
+    await this.deployCommandsToAllGuilds();
   };
 
+  /**
+   * Starts loading all command handler plugins into the system.
+   * Due to dependency resolvance, not all plugins might be loaded until this method finishes.
+   */
   private fetchCommands = async () => {
     const { pluginsLoaded, pluginsStalled } = await this.plugineer.loadPlugins(
       "./plugins/commands/"
@@ -64,8 +75,12 @@ export default class CommandInteractionPlugin {
     }
 
     await this.registerCommands();
+    await this.deployCommandsToAllGuilds();
   };
 
+  /**
+   * Denotes all valid command plugins in the queue as completely loaded.
+   */
   private registerCommands = async () => {
     for (const pluginName of this.unregisteredPlugins) {
       const plugin = this.plugineer.plugins.get(pluginName);
@@ -80,24 +95,38 @@ export default class CommandInteractionPlugin {
 
       this.commands.set(plugin.commandName, plugin);
     }
-
-    await this.deployCommands();
   };
 
-  private deployCommands = async () => {
+  /**
+   * Reports all loaded command plugins to the Discord API
+   * and enables their usage on all guilds the bot is currently in.
+   */
+  private deployCommandsToAllGuilds = async () => {
+    const idIterator = this.client.guilds.cache.keys();
+    let itResult = idIterator.next();
+    while (!itResult.done) {
+      await this.deployCommandsToGuild(itResult.value);
+
+      itResult = idIterator.next();
+    }
+  };
+
+  /**
+   * Reports all loaded command plugins to the Discord API
+   * and enables their usage on a given guild.
+   *
+   * @param guildId The guild to register the commands to.
+   */
+  private deployCommandsToGuild = async (guildId: Snowflake) => {
     const commandsJSON: RESTPostAPIApplicationCommandsJSONBody[] = [];
     this.commands.forEach(cmdPlugin => commandsJSON.push(cmdPlugin.data.toJSON()));
 
     try {
+      console.log("deployCommandsToGuild:", "Deploying to...", guildId);
       const rest = new REST({ version: "9" }).setToken(this.config.token);
-      await rest.put(
-        Routes.applicationGuildCommands(this.config.ownerUserId, this.config.testGuildId),
-        {
-          body: commandsJSON,
-        }
-      );
-
-      console.log("Successfully registered application commands.");
+      await rest.put(Routes.applicationGuildCommands(this.config.clientId, guildId), {
+        body: commandsJSON,
+      });
     } catch (err) {
       console.error(err);
     }
@@ -121,12 +150,21 @@ export default class CommandInteractionPlugin {
         ? message.reason
         : `Unexpected server error: ${message.reason}`;
 
-    return await interaction.reply({
+    const replyObj = {
       ephemeral: true,
       content: `:x: ${message}`,
-    });
+    };
+
+    if (interaction.replied) return await interaction.editReply(replyObj);
+    return await interaction.reply(replyObj);
   };
 
+  /**
+   * Handles command user interactions and forwards it to the
+   * appropriate plugin if there is one.
+   *
+   * @param interaction A live command interaction object from Discord.js
+   */
   private handleInteraction = async (interaction: Interaction<CacheType>) => {
     if (!interaction.isCommand()) return;
 
@@ -148,15 +186,24 @@ export default class CommandInteractionPlugin {
     }
   };
 
+  /**
+   * Handles cases where the bot joins a new guild.
+   * @param guild The guild the bot joined to
+   */
+  private handleGuildCreate = async (guild: Guild) =>
+    await this.deployCommandsToGuild(guild.id);
+
   start = async () => {
     await this.fetchCommands();
 
     // Hooking to discord events
     this.client.on("interactionCreate", this.handleInteraction);
+    this.client.on("guildCreate", this.handleGuildCreate);
   };
 
   stop = async () => {
-    // Unhooking discord events
+    // Unhooking from discord events
     this.client.off("interactionCreate", this.handleInteraction);
+    this.client.off("guildCreate", this.handleGuildCreate);
   };
 }

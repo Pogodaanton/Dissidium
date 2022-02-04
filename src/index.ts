@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { Client, Intents } from "discord.js";
+import { Client, Guild, Intents } from "discord.js";
 import { initConfig } from "./utils/environmenter";
 import Plugineer from "./utils/plugineer";
 

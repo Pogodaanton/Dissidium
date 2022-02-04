@@ -5,6 +5,7 @@ const config: DissidiumConfig = {
   token: "",
   testGuildId: "",
   ownerUserId: "",
+  clientId: "",
 };
 
 export function initConfig() {
@@ -29,6 +30,15 @@ export function initConfig() {
   }
 
   config.testGuildId = process.env.TEST_GUILD_ID;
+
+  if (!process.env.CLIENT_ID) {
+    console.error(
+      "Please put the bot's user ID in your .env file (CLIENT_ID). Aborting..."
+    );
+    process.exit(1);
+  }
+
+  config.clientId = process.env.CLIENT_ID;
 
   if (!process.env.OWNER_USER_ID) {
     console.error(
