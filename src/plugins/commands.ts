@@ -91,7 +91,7 @@ export default class CommandInteractionPlugin {
     try {
       const rest = new REST({ version: "9" }).setToken(this.config.token);
       await rest.put(
-        Routes.applicationGuildCommands(this.config.clientId, this.config.guildId),
+        Routes.applicationGuildCommands(this.config.ownerUserId, this.config.testGuildId),
         {
           body: commandsJSON,
         }

@@ -3,8 +3,8 @@ import { DissidiumConfig } from "../types/Dissidium";
 
 const config: DissidiumConfig = {
   token: "",
-  guildId: "",
-  clientId: "",
+  testGuildId: "",
+  ownerUserId: "",
 };
 
 export function initConfig() {
@@ -14,26 +14,30 @@ export function initConfig() {
   // Config error checking
   if (!process.env.TOKEN) {
     console.error(
-      "You have no token set, make sure to create an .env file first! Aborting..."
+      "You have no token set, make sure to create an .env file first. Aborting..."
     );
     process.exit(1);
   }
 
   config.token = process.env.TOKEN;
 
-  if (!process.env.GUILD_ID) {
-    console.error("You have no guild id set (GUILD_ID)! Aborting...");
+  if (!process.env.TEST_GUILD_ID) {
+    console.error(
+      "You have no test guild ID set in your .env file (TEST_GUILD_ID). Aborting..."
+    );
     process.exit(1);
   }
 
-  config.guildId = process.env.GUILD_ID;
+  config.testGuildId = process.env.TEST_GUILD_ID;
 
-  if (!process.env.CLIENT_ID) {
-    console.error("You have no application client id set (CLIENT_ID)! Aborting...");
+  if (!process.env.OWNER_USER_ID) {
+    console.error(
+      "Please mention your user ID in your .env file (OWNER_USER_ID). Aborting..."
+    );
     process.exit(1);
   }
 
-  config.clientId = process.env.CLIENT_ID;
+  config.ownerUserId = process.env.OWNER_USER_ID;
 
   return config;
 }
