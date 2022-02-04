@@ -98,10 +98,13 @@ export default class ButtonInteractionPlugin {
         ? message.reason
         : `Unexpected server error: ${message.reason}`;
 
-    return await interaction.reply({
+    const replyObj = {
       ephemeral: true,
       content: `:x: ${message}`,
-    });
+    };
+
+    if (interaction.replied) return await interaction.editReply(replyObj);
+    return await interaction.reply(replyObj);
   };
 
   private handleInteraction = async (interaction: Interaction<CacheType>) => {
