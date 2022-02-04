@@ -70,6 +70,7 @@ export default class RoleselectorCommandPlugin {
 
   commandName = "roleselector";
   data = new SlashCommandBuilder()
+    .setDefaultPermission(false)
     .setName("roleselector")
     .setDescription(
       "Allow users to select their own role through an interactive message."

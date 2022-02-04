@@ -10,6 +10,7 @@ export default class ServerCommandPlugin {
 
   commandName = "server";
   data = new SlashCommandBuilder()
+    .setDefaultPermission(false)
     .setName("server")
     .setDescription("Replies with server info!");
 

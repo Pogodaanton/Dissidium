@@ -82,6 +82,7 @@ export default class MessageCommand {
 
   commandName = "message";
   data = new SlashCommandBuilder()
+    .setDefaultPermission(false)
     .setName("message")
     .setDescription("Allows to create bot messages for use in other modules.")
     .addSubcommand(subCommand =>

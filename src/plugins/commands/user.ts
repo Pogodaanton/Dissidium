@@ -10,13 +10,15 @@ export default class UserCommandPlugin {
 
   commandName = "user";
   data = new SlashCommandBuilder()
+    .setDefaultPermission(false)
     .setName("user")
     .setDescription("Replies with user info!");
 
   onCommandInteraction = async (interaction: CommandInteraction<CacheType>) => {
-    await interaction.reply(
-      `Your tag: ${interaction.user.tag}\nYour id: ${interaction.user.id}`
-    );
+    await interaction.reply({
+      ephemeral: true,
+      content: `Your tag: ${interaction.user.tag}\nYour id: ${interaction.user.id}`,
+    });
   };
 
   start = async () => {};
