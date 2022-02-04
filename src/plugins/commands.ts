@@ -5,7 +5,6 @@ import {
   Collection,
   CommandInteraction,
   Guild,
-  GuildApplicationCommandPermissionData,
   Interaction,
   Snowflake,
 } from "discord.js";
@@ -21,6 +20,7 @@ import {
 } from "../types/DissidiumPlugin";
 import { DissidiumConfig } from "../types/Dissidium";
 import Plugineer from "../utils/plugineer";
+import EventEmitter from "events";
 
 type GuildCommandResponse = {
   id: Snowflake;
@@ -65,6 +65,11 @@ export default class CommandInteractionPlugin {
   // Command id registry per guild
   // Stores command name -> command id per guild
   guildCommandIds = new Collection<Snowflake, Collection<string, Snowflake>>();
+
+  /**
+   * Event emitter instance for various command related events
+   */
+  events = new EventEmitter();
 
   /**
    * Callback function for handling dependency resolvings.
@@ -158,39 +163,28 @@ export default class CommandInteractionPlugin {
         guildStore.set(command.name, command.id);
       }
 
-      await this.deployDefaultCommandPermissionsToGuild(guildId);
+      // We notify plugins that a new guild which can receive commands has appeared
+      setTimeout(() => this.events.emit("guild-commands-deployed", guildId), 200);
     } catch (err) {
       console.error("deployCommandsToGuild:", "error", err);
     }
   };
 
   /**
-   * Changes the permissions of this bot's commands in a guild,
-   * so that the bot owner and the guild owner can use all commands by default.
+   * Fetch a known guild from Discord.js.
+   * This is a helpful method for every case where you don't have an interaction object
+   * to retrieve it from.
    *
-   * @param guildId The ID of the guild to send the permission changes to
+   * @param guildId The uninque identifier of the guild you want to fetch
+   * @returns A hydrated guild object
    */
-  private deployDefaultCommandPermissionsToGuild = async (guildId: Snowflake) => {
-    const guildCommandIds = this.guildCommandIds.get(guildId);
-    if (!guildCommandIds)
-      throw new Error("There are no commands to set permissions for in guild " + guildId);
-    const guild = await this.client.guilds.fetch(guildId);
-    if (!guild) throw new Error("Bot is not in guild " + guildId);
-
-    const perms: GuildApplicationCommandPermissionData[] = [];
-    for (const cmdId of guildCommandIds.values()) {
-      perms.push({
-        id: cmdId,
-        permissions: [
-          // Give default permission to bot owner
-          { id: this.config.ownerUserId, type: "USER", permission: true },
-          // Give default permission to guild owner
-          { id: guild.ownerId, type: "USER", permission: true },
-        ],
-      });
+  fetchGuild = async (guildId: Snowflake) => {
+    try {
+      const guild = await this.client.guilds.fetch(guildId);
+      return guild;
+    } catch (err) {
+      return undefined;
     }
-
-    guild.commands.permissions.set({ fullPermissions: perms });
   };
 
   /**
@@ -216,7 +210,8 @@ export default class CommandInteractionPlugin {
       content: `:x: ${message}`,
     };
 
-    if (interaction.replied) return await interaction.editReply(replyObj);
+    if (interaction.deferred || interaction.replied)
+      return await interaction.editReply(replyObj);
     return await interaction.reply(replyObj);
   };
 

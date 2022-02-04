@@ -103,7 +103,8 @@ export default class ButtonInteractionPlugin {
       content: `:x: ${message}`,
     };
 
-    if (interaction.replied) return await interaction.editReply(replyObj);
+    if (interaction.deferred || interaction.replied)
+      return await interaction.editReply(replyObj);
     return await interaction.reply(replyObj);
   };
 
