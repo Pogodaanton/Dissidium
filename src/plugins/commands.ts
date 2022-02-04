@@ -5,6 +5,7 @@ import {
   Collection,
   CommandInteraction,
   Guild,
+  GuildApplicationCommandPermissionData,
   Interaction,
   Snowflake,
 } from "discord.js";
@@ -20,6 +21,26 @@ import {
 } from "../types/DissidiumPlugin";
 import { DissidiumConfig } from "../types/Dissidium";
 import Plugineer from "../utils/plugineer";
+
+type GuildCommandResponse = {
+  id: Snowflake;
+  application_id: Snowflake;
+  guild_id: Snowflake;
+  name: string;
+}[];
+
+const isGuildCommandsResponse = (arg: unknown): arg is GuildCommandResponse => {
+  if (!Array.isArray(arg)) return false;
+  if (arg.length <= 0) return true;
+
+  const firstItem = arg[0];
+  return (
+    typeof firstItem.name === "string" &&
+    typeof firstItem.id === "string" &&
+    typeof firstItem.application_id === "string" &&
+    typeof firstItem.guild_id === "string"
+  );
+};
 
 @staticImplements<IDissidiumPluginClass>()
 export default class CommandInteractionPlugin {
@@ -40,6 +61,10 @@ export default class CommandInteractionPlugin {
 
   // Commands registry
   commands = new Collection<string, CommandPlugin>();
+
+  // Command id registry per guild
+  // Stores command name -> command id per guild
+  guildCommandIds = new Collection<Snowflake, Collection<string, Snowflake>>();
 
   /**
    * Callback function for handling dependency resolvings.
@@ -102,20 +127,15 @@ export default class CommandInteractionPlugin {
    * and enables their usage on all guilds the bot is currently in.
    */
   private deployCommandsToAllGuilds = async () => {
-    const idIterator = this.client.guilds.cache.keys();
-    let itResult = idIterator.next();
-    while (!itResult.done) {
-      await this.deployCommandsToGuild(itResult.value);
-
-      itResult = idIterator.next();
-    }
+    for (const guildId of this.client.guilds.cache.keys())
+      await this.deployCommandsToGuild(guildId);
   };
 
   /**
    * Reports all loaded command plugins to the Discord API
    * and enables their usage on a given guild.
    *
-   * @param guildId The guild to register the commands to.
+   * @param guildId The guild to register the commands to
    */
   private deployCommandsToGuild = async (guildId: Snowflake) => {
     const commandsJSON: RESTPostAPIApplicationCommandsJSONBody[] = [];
@@ -124,12 +144,53 @@ export default class CommandInteractionPlugin {
     try {
       console.log("deployCommandsToGuild:", "Deploying to...", guildId);
       const rest = new REST({ version: "9" }).setToken(this.config.token);
-      await rest.put(Routes.applicationGuildCommands(this.config.clientId, guildId), {
-        body: commandsJSON,
-      });
+      const res = await rest.put(
+        Routes.applicationGuildCommands(this.config.clientId, guildId),
+        {
+          body: commandsJSON,
+        }
+      );
+
+      // Store registered command IDs
+      if (!isGuildCommandsResponse(res)) throw new Error("Could not store command IDs!");
+      const guildStore = this.guildCommandIds.ensure(guildId, () => new Collection());
+      for (const command of res) {
+        guildStore.set(command.name, command.id);
+      }
+
+      await this.deployDefaultCommandPermissionsToGuild(guildId);
     } catch (err) {
-      console.error(err);
+      console.error("deployCommandsToGuild:", "error", err);
     }
+  };
+
+  /**
+   * Changes the permissions of this bot's commands in a guild,
+   * so that the bot owner and the guild owner can use all commands by default.
+   *
+   * @param guildId The ID of the guild to send the permission changes to
+   */
+  private deployDefaultCommandPermissionsToGuild = async (guildId: Snowflake) => {
+    const guildCommandIds = this.guildCommandIds.get(guildId);
+    if (!guildCommandIds)
+      throw new Error("There are no commands to set permissions for in guild " + guildId);
+    const guild = await this.client.guilds.fetch(guildId);
+    if (!guild) throw new Error("Bot is not in guild " + guildId);
+
+    const perms: GuildApplicationCommandPermissionData[] = [];
+    for (const cmdId of guildCommandIds.values()) {
+      perms.push({
+        id: cmdId,
+        permissions: [
+          // Give default permission to bot owner
+          { id: this.config.ownerUserId, type: "USER", permission: true },
+          // Give default permission to guild owner
+          { id: guild.ownerId, type: "USER", permission: true },
+        ],
+      });
+    }
+
+    guild.commands.permissions.set({ fullPermissions: perms });
   };
 
   /**
