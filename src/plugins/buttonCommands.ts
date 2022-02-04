@@ -71,7 +71,14 @@ export default class ButtonInteractionPlugin {
    * @param guildId The uninque identifier of the guild you want to fetch
    * @returns A hydrated guild object
    */
-  fetchGuild = async (guildId: Snowflake) => await this.client.guilds.fetch(guildId);
+  fetchGuild = async (guildId: Snowflake) => {
+    try {
+      const guild = await this.client.guilds.fetch(guildId);
+      return guild;
+    } catch (err) {
+      return undefined;
+    }
+  };
 
   /**
    * Sends an error message to the user.
