@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { CacheType, Client, Collection, Interaction, Snowflake } from "discord.js";
+import { CacheType, Client, Collection, Interaction } from "discord.js";
 import {
   staticImplements,
   IDissidiumPluginClass,
@@ -54,23 +54,6 @@ export default class ButtonInteractionPlugin {
     const customId =
       (caller.constructor as IDissidiumPluginClass).pluginName + ":" + localId;
     return this.buttonHandlers.delete(customId);
-  };
-
-  /**
-   * Fetch a known guild from Discord.js.
-   * This is a helpful method for every case where you don't have an interaction object
-   * to retrieve it from.
-   *
-   * @param guildId The uninque identifier of the guild you want to fetch
-   * @returns A hydrated guild object
-   */
-  fetchGuild = async (guildId: Snowflake) => {
-    try {
-      const guild = await this.client.guilds.fetch(guildId);
-      return guild;
-    } catch (err) {
-      return undefined;
-    }
   };
 
   private handleInteraction = async (interaction: Interaction<CacheType>) => {

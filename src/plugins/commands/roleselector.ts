@@ -3,6 +3,7 @@ import { SlashCommandBuilder } from "@discordjs/builders";
 import {
   ButtonInteraction,
   CacheType,
+  Client,
   CommandInteraction,
   Guild,
   MessageActionRow,
@@ -18,6 +19,7 @@ import {
   ICommandPluginClass,
   CommandError,
 } from "../../types/DissidiumPlugin";
+import { safelyFetchGuild } from "../../utils/helpers";
 import ButtonInteractionPlugin from "../buttonCommands";
 import DatabasePlugin from "../database";
 import MessageCommand from "./message";
@@ -895,10 +897,10 @@ export default class RoleselectorCommandPlugin {
    *
    * It's like adding water to a cake mix...
    */
-  private hydrateRoleselectors = async () => {
+  private hydrateRoleselectors = async (client: Client<true>) => {
     const guildIds = this.db.getRelevantGuilds();
     for (const guildId of guildIds) {
-      const guild = await this.btnInteraction.fetchGuild(guildId);
+      const guild = await safelyFetchGuild(client, guildId);
       if (!guild || !guild.available) {
         console.log(
           "Roleselector Hydration:",
@@ -940,6 +942,6 @@ export default class RoleselectorCommandPlugin {
     }
   };
 
-  start = async () => await this.hydrateRoleselectors();
+  start = async (client: Client<true>) => await this.hydrateRoleselectors(client);
   stop = async () => {};
 }

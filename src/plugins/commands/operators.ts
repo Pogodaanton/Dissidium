@@ -3,6 +3,7 @@ import { SlashCommandBuilder } from "@discordjs/builders";
 import {
   ApplicationCommandPermissionData,
   CacheType,
+  Client,
   CommandInteraction,
   Guild,
   GuildApplicationCommandPermissionData,
@@ -15,6 +16,7 @@ import {
   ICommandPluginClass,
   CommandError,
 } from "../../types/DissidiumPlugin";
+import { safelyFetchGuild } from "../../utils/helpers";
 import CommandInteractionPlugin from "../commands";
 import DatabasePlugin from "../database";
 
@@ -238,13 +240,14 @@ export default class OperatorsCommandPlugin {
   ) {}
 
   /**
-   * Listener that is invoked if a new guild accepted the registration of this bot's commands.
+   * Listener builder for onGuildCommandDeployed
    *
-   * @param guildId The ID of the guild to send the permission changes to
+   * @param client An initialised bot client object retrieved from Discord.js
+   * @returns An event handler that should be invoked each time the bot registered its commands to a new guild.
    */
-  onGuildCommandDeployed = async (guildId: string) => {
+  _onGuildCommandDeployed = (client: Client<true>) => async (guildId: string) => {
     try {
-      const guild = await this.commander.fetchGuild(guildId);
+      const guild = await safelyFetchGuild(client, guildId);
       if (!guild) return;
 
       this.redeployOperators(guild);
@@ -253,11 +256,22 @@ export default class OperatorsCommandPlugin {
     }
   };
 
-  start = async () => {
+  /**
+   * Listener that is invoked if the bot successfully registered its commands
+   * to a new guild.
+   *
+   * @param guildId The ID of the guild to send the permission changes to
+   */
+  onGuildCommandDeployed?: (guildId: string) => Promise<void>;
+
+  start = async (client: Client<true>) => {
+    // We first need to build the listener with the newly acquired client object
+    this.onGuildCommandDeployed = this._onGuildCommandDeployed(client);
     this.commander.events.on("guild-commands-deployed", this.onGuildCommandDeployed);
   };
 
   stop = async () => {
-    this.commander.events.off("guild-commands-deployed", this.onGuildCommandDeployed);
+    if (this.onGuildCommandDeployed)
+      this.commander.events.off("guild-commands-deployed", this.onGuildCommandDeployed);
   };
 }

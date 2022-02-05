@@ -163,23 +163,6 @@ export default class CommandInteractionPlugin {
   };
 
   /**
-   * Fetch a known guild from Discord.js.
-   * This is a helpful method for every case where you don't have an interaction object
-   * to retrieve it from.
-   *
-   * @param guildId The uninque identifier of the guild you want to fetch
-   * @returns A hydrated guild object
-   */
-  fetchGuild = async (guildId: Snowflake) => {
-    try {
-      const guild = await this.client.guilds.fetch(guildId);
-      return guild;
-    } catch (err) {
-      return undefined;
-    }
-  };
-
-  /**
    * Handles command user interactions and forwards it to the
    * appropriate plugin if there is one.
    *
