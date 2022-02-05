@@ -1,20 +1,13 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import {
-  ButtonInteraction,
-  CacheType,
-  Client,
-  Collection,
-  Interaction,
-  Snowflake,
-} from "discord.js";
+import { CacheType, Client, Collection, Interaction, Snowflake } from "discord.js";
 import {
   staticImplements,
   IDissidiumPluginClass,
-  CommandError,
   isCommandError,
   ButtonCommandHandler,
   DissidiumPlugin,
 } from "../types/DissidiumPlugin";
+import { replyError } from "../utils/helpers";
 
 @staticImplements<IDissidiumPluginClass>()
 export default class ButtonInteractionPlugin {
@@ -80,34 +73,6 @@ export default class ButtonInteractionPlugin {
     }
   };
 
-  /**
-   * Sends an error message to the user.
-   *
-   * @param interaction A user command interaction object from Discord.js
-   * @param message The error message to send to the user
-   */
-  private sendError = async (
-    interaction: ButtonInteraction<CacheType>,
-    message?: string | CommandError
-  ) => {
-    if (!message)
-      message = `We've encountered an unexpected error. If this happens regularly, please notify the server admin.`;
-
-    if (isCommandError(message))
-      message = message.userCaused
-        ? message.reason
-        : `Unexpected server error: ${message.reason}`;
-
-    const replyObj = {
-      ephemeral: true,
-      content: `:x: ${message}`,
-    };
-
-    if (interaction.deferred || interaction.replied)
-      return await interaction.editReply(replyObj);
-    return await interaction.reply(replyObj);
-  };
-
   private handleInteraction = async (interaction: Interaction<CacheType>) => {
     if (!interaction.isButton()) return;
 
@@ -125,12 +90,12 @@ export default class ButtonInteractionPlugin {
       // Handle unexpected errors (We print them to the console)
       if (!isCommandError(err)) {
         console.error(`Button press: ${customId} - Error:`, err);
-        await this.sendError(interaction);
+        await replyError(interaction);
         return;
       }
 
       // Handle expected (user) errors
-      await this.sendError(interaction, err);
+      await replyError(interaction, err);
     }
   };
 
