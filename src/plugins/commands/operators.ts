@@ -195,7 +195,7 @@ export default class OperatorsCommandPlugin {
           description:
             lines.length > 0 ? lines.join("\n") : "No bot operators explicitly assigned.",
           footer: {
-            text: "**Note:** The bot owner and the guild owner are always operators",
+            text: "Note: The bot owner and the guild owner are always operators",
           },
         }),
       ],
