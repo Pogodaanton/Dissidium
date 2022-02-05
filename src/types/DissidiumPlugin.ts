@@ -2,7 +2,7 @@ import {
   SlashCommandBuilder,
   SlashCommandSubcommandsOnlyBuilder,
 } from "@discordjs/builders";
-import { CommandInteraction, CacheType, ButtonInteraction } from "discord.js";
+import { CommandInteraction, CacheType, ButtonInteraction, Client } from "discord.js";
 
 /**
  * Used for enforcing static variable implementation for classes
@@ -39,7 +39,7 @@ export abstract class DissidiumPlugin {
   /**
    * An asynchronous start method typically ran after construction.
    */
-  abstract start(): Promise<void>;
+  abstract start(client: Client<true>): Promise<void>;
   /**
    * An asynchronous stop method ran before unloading the plugin.
    *

@@ -111,7 +111,7 @@ export default class Plugineer {
       this.plugins.set(dependeeName, pluginObj);
 
       // Wait for plugin to start up
-      await pluginObj.start();
+      await pluginObj.start(this.client);
 
       // Emit dependency resolvance event
       this.events.emit("dependency-resolved", dependeeName);
@@ -180,7 +180,7 @@ export default class Plugineer {
         this.resolverQueue.push(plugin.pluginName);
 
         // Wait for startup to finish
-        await pluginObj.start();
+        await pluginObj.start(this.client);
 
         // Start resolve queue
         await this.resolveDependencies();
