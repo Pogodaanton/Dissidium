@@ -49,7 +49,7 @@ export default class ButtonInteractionPlugin {
   removeButtonListener = (caller: DissidiumPlugin | string, localId?: string) => {
     if (typeof caller === "string") return this.buttonHandlers.delete(caller);
     if (typeof localId !== "string")
-      throw new SyntaxError("Paramtere localId is missing in removeButtonListener.");
+      throw new SyntaxError("Parameter localId is missing in removeButtonListener.");
 
     const customId =
       (caller.constructor as IDissidiumPluginClass).pluginName + ":" + localId;
