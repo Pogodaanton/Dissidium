@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { SlashCommandBuilder } from "@discordjs/builders";
-import { CacheType, CommandInteraction } from "discord.js";
+import { SlashCommandBuilder, CacheType, CommandInteraction } from "discord.js";
 import { staticImplements, ICommandPluginClass } from "../../types/DissidiumPlugin";
 
 @staticImplements<ICommandPluginClass<[]>>()
@@ -10,7 +9,8 @@ export default class UserCommandPlugin {
 
   commandName = "user";
   data = new SlashCommandBuilder()
-    .setDefaultPermission(false)
+    .setDMPermission(true)
+    .setDefaultMemberPermissions(0)
     .setName("user")
     .setDescription("Replies with user info!");
 

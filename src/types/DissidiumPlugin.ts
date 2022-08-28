@@ -1,8 +1,11 @@
 import {
+  CacheType,
+  ButtonInteraction,
+  Client,
+  ChatInputCommandInteraction,
   SlashCommandBuilder,
   SlashCommandSubcommandsOnlyBuilder,
-} from "@discordjs/builders";
-import { CommandInteraction, CacheType, ButtonInteraction, Client } from "discord.js";
+} from "discord.js";
 
 /**
  * Used for enforcing static variable implementation for classes
@@ -70,7 +73,7 @@ export abstract class CommandPlugin {
    * @param interaction A live interaction object from Discord.js
    */
   abstract onCommandInteraction(
-    interaction: CommandInteraction<CacheType>
+    interaction: ChatInputCommandInteraction<CacheType>
   ): Promise<void>;
 }
 
@@ -79,6 +82,13 @@ export abstract class CommandPlugin {
  */
 export type ButtonCommandHandler = (
   interaction: ButtonInteraction<CacheType>
+) => Promise<void>;
+
+/**
+ * Standardised definitiion for the handling of chat commands in Dissidium.
+ */
+export type SlashCommandHandler = (
+  interaction: ChatInputCommandInteraction<"cached">
 ) => Promise<void>;
 
 /**

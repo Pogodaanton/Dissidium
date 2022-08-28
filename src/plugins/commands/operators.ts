@@ -1,14 +1,13 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { SlashCommandBuilder } from "@discordjs/builders";
 import {
-  ApplicationCommandPermissionData,
   CacheType,
   Client,
   CommandInteraction,
   Guild,
-  GuildApplicationCommandPermissionData,
-  MessageEmbed,
+  EmbedBuilder,
   Snowflake,
+  SlashCommandBuilder,
+  ChatInputCommandInteraction,
 } from "discord.js";
 import { DissidiumConfig } from "../../types/Dissidium";
 import {
@@ -30,7 +29,8 @@ export default class OperatorsCommandPlugin {
   commandName = "op";
   data = new SlashCommandBuilder()
     .setName("op")
-    .setDefaultPermission(false)
+    .setDMPermission(false)
+    .setDefaultMemberPermissions(0)
     .setDescription(
       "Assign and remove bot operators who receive permissions to the remaining commands."
     )
@@ -65,35 +65,10 @@ export default class OperatorsCommandPlugin {
    * @param guild The guild in which the permissions should be updated
    */
   redeployOperators = async (guild: Guild) => {
+    console.log("Redeploying operators...");
     const guildCommandIds = this.commander.guildCommandIds.get(guild.id);
     if (!guildCommandIds)
       throw new CommandError("The given guild has no command ids cached.", true);
-
-    // Bot and guild owner will always be operators
-    const dbOps = await this.db.getGuildData<Snowflake[]>(guild.id, "ops", []);
-    const ops = [...dbOps, this.config.ownerUserId];
-
-    // Add guild owner if it differs from bot owner
-    if (this.config.ownerUserId !== guild.ownerId) ops.push(guild.ownerId);
-
-    // Create list of permitted users
-    const permittedUsers: ApplicationCommandPermissionData[] = [];
-    for (const userId of ops)
-      permittedUsers.push({
-        id: userId,
-        type: "USER",
-        permission: true,
-      });
-
-    // Append list of permitted users to each command
-    const perms: GuildApplicationCommandPermissionData[] = [];
-    for (const cmdId of guildCommandIds.values())
-      perms.push({
-        id: cmdId,
-        permissions: permittedUsers,
-      });
-
-    guild.commands.permissions.set({ fullPermissions: perms });
   };
 
   /**
@@ -192,7 +167,7 @@ export default class OperatorsCommandPlugin {
 
     interaction.editReply({
       embeds: [
-        new MessageEmbed({
+        new EmbedBuilder({
           title: "List of bot operators",
           description:
             lines.length > 0 ? lines.join("\n") : "No bot operators explicitly assigned.",
@@ -209,7 +184,7 @@ export default class OperatorsCommandPlugin {
    *
    * @param interaction A live interaction object from Discord.js
    */
-  onCommandInteraction = async (interaction: CommandInteraction<CacheType>) => {
+  onCommandInteraction = async (interaction: ChatInputCommandInteraction<CacheType>) => {
     if (!interaction.inGuild())
       throw new CommandError("This command is only executable in guild text-channels.");
 

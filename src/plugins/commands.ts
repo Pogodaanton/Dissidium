@@ -169,7 +169,7 @@ export default class CommandInteractionPlugin {
    * @param interaction A live command interaction object from Discord.js
    */
   private handleInteraction = async (interaction: Interaction<CacheType>) => {
-    if (!interaction.isCommand()) return;
+    if (!interaction.isChatInputCommand()) return;
 
     const command = this.commands.get(interaction.commandName);
     if (!command) return;

@@ -1,26 +1,27 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import {
-  CacheType,
-  CommandInteraction,
   DMChannel,
   Guild,
   Message,
-  MessageEmbed,
+  EmbedBuilder,
   NewsChannel,
   TextChannel,
+  SlashCommandBuilder,
+  ChatInputCommandInteraction,
 } from "discord.js";
 import fetch from "node-fetch";
 import { nanoid } from "nanoid";
 import {
   CommandError,
+  CommandPlugin,
   ICommandPluginClass,
   staticImplements,
 } from "../../types/DissidiumPlugin";
-import { SlashCommandBuilder } from "@discordjs/builders";
 import { ChannelType } from "discord-api-types/v9";
 import DatabasePlugin from "../database";
 import fs from "fs/promises";
 import { resolve } from "path";
+import { SlashCommandHandler } from "../../types/DissidiumPlugin";
 
 const URLRegex =
   /((http|https):\/\/)(www.)?share\.discohook\.app\/go\/[a-zA-Z0-9@:%._\\+~#?&//=]{8,}/gm;
@@ -76,15 +77,16 @@ interface MessageObject {
  * A wizard to greet new users and help them in retrieving roles.
  */
 @staticImplements<ICommandPluginClass<[DatabasePlugin]>>()
-export default class MessageCommand {
+export default class MessageCommand extends CommandPlugin {
   static pluginName = "command-message";
   static dependencies = ["database"];
 
   commandName = "message";
   data = new SlashCommandBuilder()
-    .setDefaultPermission(false)
     .setName("message")
     .setDescription("Allows to create bot messages for use in other modules.")
+    .setDMPermission(false)
+    .setDefaultMemberPermissions(0)
     .addSubcommand(subCommand =>
       subCommand
         .setName("editor")
@@ -142,7 +144,7 @@ export default class MessageCommand {
         )
         .addChannelOption(channelOption =>
           channelOption
-            .addChannelType(ChannelType.GuildText)
+            .addChannelTypes(ChannelType.GuildText)
             .setName("channel")
             .setDescription(
               "The text-channel to post this message to. (Default: This text-channel)"
@@ -285,14 +287,14 @@ export default class MessageCommand {
    *
    * @param interaction A live interaction object from Discord.js that is guaranteed to come from a guild
    */
-  onEditorCommand = async (interaction: CommandInteraction<"present">) => {
+  onEditorCommand: SlashCommandHandler = async interaction => {
     const messageName = interaction.options.getString("message-name", false) || "";
     const url = await this.generateEditorURL(interaction.guildId, messageName);
 
     await interaction.reply({
       ephemeral: true,
       embeds: [
-        new MessageEmbed({
+        new EmbedBuilder({
           title:
             ":pencil: " +
             (messageName
@@ -325,7 +327,7 @@ export default class MessageCommand {
    *
    * @param interaction A live interaction object from Discord.js that is guaranteed to come from a guild
    */
-  onSetCommand = async (interaction: CommandInteraction<"present">) => {
+  onSetCommand: SlashCommandHandler = async interaction => {
     const { guildId, createdTimestamp, user } = interaction;
     const messageName = interaction.options.getString("message-name", true);
     const shortLinkArray = interaction.options
@@ -393,7 +395,7 @@ export default class MessageCommand {
    *
    * @param interaction A live interaction object from Discord.js that is guaranteed to come from a guild
    */
-  onListCommand = async (interaction: CommandInteraction<"present">) => {
+  onListCommand: SlashCommandHandler = async interaction => {
     const { guildId } = interaction;
     const messageInfos = await this.db.getGuildData<MessageDB>(guildId, "messages", {});
 
@@ -418,21 +420,19 @@ export default class MessageCommand {
       );
     }
 
+    const repliedEmbed = new EmbedBuilder()
+      .setTitle("List of saved bot messages")
+      .setDescription(description.join("\n"));
+
+    if (description.length <= 0) {
+      repliedEmbed.setDescription("No messages saved yet.");
+      repliedEmbed.setFooter({
+        text: `👀 To add new messages, use /message editor`,
+      });
+    }
+
     await interaction.reply({
-      embeds: [
-        new MessageEmbed({
-          title: "List of saved bot messages",
-          description:
-            description.length > 0 ? description.join("\n") : "No messages saved yet.",
-          footer:
-            // Only send footer if there are no messages saved yet.
-            description.length > 0
-              ? {}
-              : {
-                  text: `👀 To add new messages, use /message editor`,
-                },
-        }),
-      ],
+      embeds: [repliedEmbed],
     });
   };
 
@@ -441,7 +441,7 @@ export default class MessageCommand {
    *
    * @param interaction A live interaction object from Discord.js that is guaranteed to come from a guild
    */
-  onPostCommand = async (interaction: CommandInteraction<"present">) => {
+  onPostCommand: SlashCommandHandler = async interaction => {
     const { guild, guildId, channelId } = interaction;
     const messageName = interaction.options.getString("message-name", true);
     const channelCandidateId =
@@ -458,7 +458,7 @@ export default class MessageCommand {
     const channel = await guild.channels.fetch(channelCandidateId);
     if (!channel)
       throw new CommandError("The given channel does not exist in this guild.");
-    if (!channel.isText())
+    if (channel.type !== ChannelType.GuildText)
       throw new CommandError("The given channel is not a text-channel.");
 
     // Send message
@@ -477,7 +477,7 @@ export default class MessageCommand {
    *
    * @param interaction A live interaction object from Discord.js that is guaranteed to come from a guild
    */
-  onRemoveCommand = async (interaction: CommandInteraction<"present">) => {
+  onRemoveCommand: SlashCommandHandler = async interaction => {
     const { guildId } = interaction;
     const messageName = interaction.options.getString("message-name", true);
 
@@ -502,7 +502,7 @@ export default class MessageCommand {
    *
    * @param interaction A live interaction object from Discord.js
    */
-  onCommandInteraction = async (interaction: CommandInteraction<CacheType>) => {
+  onCommandInteraction = async (interaction: ChatInputCommandInteraction<"cached">) => {
     if (!interaction.inGuild())
       throw new CommandError("This command is only executable in guild text-channels.");
 
@@ -534,7 +534,9 @@ export default class MessageCommand {
     }
   };
 
-  constructor(private db: DatabasePlugin) {}
+  constructor(private db: DatabasePlugin) {
+    super();
+  }
 
   start = async () => {};
   stop = async () => {};
