@@ -1,23 +1,26 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { SlashCommandBuilder } from "@discordjs/builders";
 import {
   ButtonInteraction,
   CacheType,
   Client,
-  CommandInteraction,
   Guild,
-  MessageActionRow,
-  MessageButton,
+  ActionRowBuilder,
+  ButtonBuilder,
   MessageEditOptions,
-  MessageEmbed,
+  EmbedBuilder,
   NewsChannel,
   Snowflake,
   TextChannel,
+  SlashCommandBuilder,
+  ChatInputCommandInteraction,
+  ButtonStyle,
+  ChannelType,
 } from "discord.js";
 import {
   staticImplements,
   ICommandPluginClass,
   CommandError,
+  SlashCommandHandler,
 } from "../../types/DissidiumPlugin";
 import { safelyFetchGuild } from "../../utils/helpers";
 import ButtonInteractionPlugin from "../buttonCommands";
@@ -72,7 +75,8 @@ export default class RoleselectorCommandPlugin {
 
   commandName = "roleselector";
   data = new SlashCommandBuilder()
-    .setDefaultPermission(false)
+    .setDMPermission(false)
+    .setDefaultMemberPermissions(0)
     .setName("roleselector")
     .setDescription(
       "Allow users to select their own role through an interactive message."
@@ -267,7 +271,7 @@ export default class RoleselectorCommandPlugin {
    * @param interaction A live interaction object from Discord.js invoked by a command
    * @returns The proposed configuration name
    */
-  private getConfigName = (interaction: CommandInteraction<CacheType>) => {
+  private getConfigName = (interaction: ChatInputCommandInteraction<CacheType>) => {
     const configName = interaction.options.getString("config-name", true);
 
     // Name validation
@@ -316,17 +320,18 @@ export default class RoleselectorCommandPlugin {
       }
 
       // Create base button
-      const btn = new MessageButton()
+      const btn = new ButtonBuilder()
         .setCustomId(customId)
         .setLabel(label)
-        .setStyle("SECONDARY");
+        .setStyle(ButtonStyle.Secondary);
 
       // Add emoji to button, if it exists
       const { emoji } = option;
       if (emoji) btn.setEmoji(emoji);
 
       // An action row can only have 5 elements
-      if (buttonCount % 5 === 0) messageComponents.push(new MessageActionRow());
+      if (buttonCount % 5 === 0)
+        messageComponents.push(new ActionRowBuilder<ButtonBuilder>());
       messageComponents.at(-1)?.addComponents(btn);
 
       buttonCount++;
@@ -385,7 +390,7 @@ export default class RoleselectorCommandPlugin {
 
     // Fetch message object or halt if it doesn't exist
     const channel = await guild.channels.fetch(roleselector.observable.channelId);
-    if (!channel || !channel.isText()) return;
+    if (!channel || channel.type !== ChannelType.GuildText) return;
     const message = await channel.messages.fetch(roleselector.observable.messageId);
     if (!message) {
       roleselector.observable = null;
@@ -443,7 +448,7 @@ export default class RoleselectorCommandPlugin {
 
     // Fetch message object or halt if it doesn't exist
     const channel = await guild.channels.fetch(roleselector.observable.channelId);
-    if (!channel || !channel.isText()) return;
+    if (!channel || channel.type !== ChannelType.GuildText) return;
     if (!roleselector.observable) return;
     const message = await channel.messages.fetch(roleselector.observable.messageId);
     if (!message) return;
@@ -467,8 +472,10 @@ export default class RoleselectorCommandPlugin {
    */
   private handleButtonInteraction = async (interaction: ButtonInteraction<CacheType>) => {
     // Make sure the guild is cached so we can safely manipulate user roles
-    if (interaction.guildId && !interaction.inCachedGuild())
-      await this.btnInteraction.fetchGuild(interaction.guildId);
+    if (interaction.guildId && !interaction.inCachedGuild()) {
+      await interaction.guild?.fetch();
+    }
+
     if (!interaction.inCachedGuild()) return;
 
     // Due to the steps above, we can assuredly say the guild is always cached.
@@ -505,7 +512,7 @@ export default class RoleselectorCommandPlugin {
    *
    * @param interaction A live interaction object from Discord.js that is guaranteed to come from a guild
    */
-  onAddCommand = async (interaction: CommandInteraction<"present">) => {
+  onAddCommand: SlashCommandHandler = async interaction => {
     const { guildId } = interaction;
     const configName = this.getConfigName(interaction);
     const messageName = interaction.options.getString("message-name", false) ?? "";
@@ -538,7 +545,7 @@ export default class RoleselectorCommandPlugin {
    *
    * @param interaction A live interaction object from Discord.js that is guaranteed to come from a guild
    */
-  onRemoveCommand = async (interaction: CommandInteraction<"present">) => {
+  onRemoveCommand: SlashCommandHandler = async interaction => {
     const { guildId, guild } = interaction;
     const configName = this.getConfigName(interaction);
 
@@ -567,7 +574,7 @@ export default class RoleselectorCommandPlugin {
    *
    * @param interaction A live interaction object from Discord.js that is guaranteed to come from a guild
    */
-  onListCommand = async (interaction: CommandInteraction<"present">) => {
+  onListCommand: SlashCommandHandler = async interaction => {
     const { guildId } = interaction;
 
     // Check guild availability in cache
@@ -623,7 +630,7 @@ export default class RoleselectorCommandPlugin {
     await interaction.reply({
       ephemeral: true,
       embeds: [
-        new MessageEmbed({
+        new EmbedBuilder({
           title: "List of role selectors and their options:",
           description,
         }),
@@ -636,7 +643,7 @@ export default class RoleselectorCommandPlugin {
    *
    * @param interaction A live interaction object from Discord.js that is guaranteed to come from a guild
    */
-  onOptionCommand = async (interaction: CommandInteraction<"present">) => {
+  onOptionCommand: SlashCommandHandler = async interaction => {
     const { guildId, guild, options } = interaction;
     const subcommand = options.getSubcommand(true);
     const configName = this.getConfigName(interaction);
@@ -729,7 +736,7 @@ export default class RoleselectorCommandPlugin {
    *
    * @param interaction A live interaction object from Discord.js that is guaranteed to come from a guild
    */
-  onMessageCommand = async (interaction: CommandInteraction<"present">) => {
+  onMessageCommand: SlashCommandHandler = async interaction => {
     const { guildId, guild, options } = interaction;
     const subcommand = options.getSubcommand(true);
     const configName = this.getConfigName(interaction);
@@ -770,7 +777,7 @@ export default class RoleselectorCommandPlugin {
    *
    * @param interaction A live interaction object from Discord.js that is guaranteed to come from a guild
    */
-  onChannelCommand = async (interaction: CommandInteraction<"present">) => {
+  onChannelCommand: SlashCommandHandler = async interaction => {
     const { guildId, guild, options } = interaction;
     const subcommand = options.getSubcommand(true);
     const configName = this.getConfigName(interaction);
@@ -795,7 +802,8 @@ export default class RoleselectorCommandPlugin {
       const { id: channelId } = interaction.options.getChannel("channel", true);
       const channel = await interaction.guild.channels.fetch(channelId);
       if (!channel) throw new CommandError("Channel not found.");
-      if (!channel.isText()) throw new CommandError("Channel is not a text-channel.");
+      if (channel.type !== ChannelType.GuildText)
+        throw new CommandError("Channel is not a text-channel.");
 
       // Remove from old channel and unregister old buttons if needed
       await this.unpostRoleselector(guild, configName, roleselector);
@@ -808,9 +816,11 @@ export default class RoleselectorCommandPlugin {
       };
 
       await this.db.save();
-      return await interaction.reply(
+      await interaction.reply(
         `✅ Successfully assigned role selector "${configName}" to <#${channel.id}>!`
       );
+
+      return;
     }
 
     if (subcommand === "remove") {
@@ -825,9 +835,11 @@ export default class RoleselectorCommandPlugin {
       roleselector.observable = null;
       this.db.save();
 
-      return await interaction.reply(
+      await interaction.reply(
         `✅ Successfully removed role selector "${configName}" from all text-channels!`
       );
+
+      return;
     }
 
     throw new CommandError("Please use the available sub-commands.");
@@ -838,7 +850,7 @@ export default class RoleselectorCommandPlugin {
    *
    * @param interaction A live interaction object from Discord.js
    */
-  onCommandInteraction = async (interaction: CommandInteraction<CacheType>) => {
+  onCommandInteraction = async (interaction: ChatInputCommandInteraction<"cached">) => {
     if (!interaction.inGuild())
       throw new CommandError("This command is only executable in guild text-channels.");
 
@@ -920,7 +932,8 @@ export default class RoleselectorCommandPlugin {
         // Make sure observable has not been deleted
         try {
           const channel = await guild.channels.fetch(config.observable.channelId);
-          if (!channel || !channel.isText()) throw new Error("Channel does not exist");
+          if (!channel || channel.type !== ChannelType.GuildText)
+            throw new Error("Channel does not exist");
           const message = await channel.messages.fetch(config.observable.messageId);
           if (!message) throw new Error("Message does not exist");
         } catch (err) {
