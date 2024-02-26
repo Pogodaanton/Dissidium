@@ -4,8 +4,8 @@ The Discord bot no one asked for. Configurable, modular and (hopefully) reliable
 
 ## Prerequisites
 
-- NodeJS version 16/LTS (`nvm` recommended)
-- pnpm (optional, but the docs will assume you use it)
+- NodeJS version 16/LTS (consider using a version manager like `nvm` or `volta`)
+- pnpm
 
 ## Getting Started
 
@@ -15,7 +15,7 @@ Before starting the bot for the first time, you will need to clone the repositor
 
 - Clone the repository
 - Install dependencies via `pnpm install`
-- Build the bot from source via `pnpm build`
+- Build the bot from source via `pnpm build/release`
 
 > You will need to do these steps any time you update the bot.
 
@@ -41,9 +41,16 @@ While I don't expect any contributions, here are some of my thoughts to consider
 - Most new features should likely reside in the modular `plugins` directory.
 - Plugins should be treated as separate modules. They may depend on other plugins, however, those need to be noted in the static `dependencies` array and retrieved through the constructor. Importing them manually is not advised.
 - Make sure to use the provided `.prettierrc` for formatting
-- Esbuild's insane building speeds and the aggressive ratelimiting of Discord's APIs don't go well together. Therefore, the builder and runner processes were seperated:
-  - Run `pnpm watch` in the background to automatically rebuild the project on file change during development
-  - Run `pnpm start` to (re)start the bot process
+
+Esbuild's insane building speeds and the aggressive ratelimiting of Discord's APIs don't go well together. Therefore, the builder and runner processes were seperated:
+
+- Run `pnpm watch` in the background to automatically rebuild the project on file change during development
+- Run `pnpm start` to (re)start the bot process
+
+If you are using VS Code:
+
+- use the recommended extensions listed under the .vscode directory
+- after installing them, you should be able to use the prewritten tasks listed under the .vscode directory
 
 ## License
 
