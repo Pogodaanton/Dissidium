@@ -61,7 +61,12 @@ export default class ButtonInteractionPlugin {
 
     const { customId } = interaction;
     const buttonHandler = this.buttonHandlers.get(customId);
-    if (!buttonHandler) return;
+    if (!buttonHandler) {
+      console.log(
+        `Unregistered button. User requested handling of ${customId}, but is unknown internally. You might have to (re)create a message...`
+      );
+      return;
+    }
 
     try {
       // We strip away the plugin-specific prefix we use to keep the ids unique
