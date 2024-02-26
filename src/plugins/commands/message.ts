@@ -307,7 +307,7 @@ export default class MessageCommand extends CommandPlugin {
             "`Webhook URL`, `Message Link`, `Files`",
             "",
             "After you've finished, locate the `Share Message` button and generate a short-link.",
-            `You can apply your changes by using \`/editor set ${
+            `You can apply your changes by using \`/message set ${
               messageName || "<NAME>"
             } <SHORTLINK>\``,
           ].join("\n"),
@@ -420,11 +420,11 @@ export default class MessageCommand extends CommandPlugin {
       );
     }
 
-    const repliedEmbed = new EmbedBuilder()
-      .setTitle("List of saved bot messages")
-      .setDescription(description.join("\n"));
+    const repliedEmbed = new EmbedBuilder().setTitle("List of saved bot messages");
 
-    if (description.length <= 0) {
+    if (description.length > 0) {
+      repliedEmbed.setDescription(description.join("\n"));
+    } else {
       repliedEmbed.setDescription("No messages saved yet.");
       repliedEmbed.setFooter({
         text: `👀 To add new messages, use /message editor`,
