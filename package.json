@@ -1,11 +1,11 @@
 {
   "name": "dissidium",
   "description": "The Discord bot that does all the things you don't need!",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "main": "src/index.ts",
   "type": "module",
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=20.0.0"
   },
   "license": "MIT",
   "scripts": {

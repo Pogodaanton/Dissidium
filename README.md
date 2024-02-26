@@ -4,7 +4,7 @@ The Discord bot no one asked for. Configurable, modular and (hopefully) reliable
 
 ## Prerequisites
 
-- NodeJS version 16/LTS (consider using a version manager like `nvm` or `volta`)
+- NodeJS version 20/LTS (consider using a version manager like `nvm` or `volta`)
 - pnpm
 
 ## Getting Started
