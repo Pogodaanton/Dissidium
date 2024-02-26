@@ -1,4 +1,4 @@
-import { build } from "esbuild";
+import esbuild from "esbuild";
 import { readFile } from "fs/promises";
 
 const shouldWatch = process.env.WITH_WATCH == 1;
@@ -17,34 +17,27 @@ async function start() {
   const pluginFiles = await globby(["./src/plugins/**/**.ts"]);
 
   try {
-    await build({
+    const ctx = await esbuild.context({
       platform: "node",
       bundle: true,
       minify: false,
-      sourcemap: false,
+      sourcemap: process.env.WITH_SOURCEMAP == 1,
       format: "esm",
       target: "node16",
       entryPoints: [...pluginFiles, "./src/index.ts"],
       outdir: "./dist",
-      watch: shouldWatch
-        ? {
-            onRebuild(error, result) {
-              if (error)
-                console.error(
-                  new Date().toLocaleTimeString() + " > watch build failed!!!!!!!!!!!!!!"
-                );
-              else
-                console.log(new Date().toLocaleTimeString() + " > watch build succeeded");
-            },
-          }
-        : false,
       external,
     });
 
-    if (shouldWatch)
+    if (shouldWatch) {
       console.log(
         "\nListening for file changes in src directory...\n\n            [Use ^C to exit...]\n"
       );
+      await ctx.watch();
+    } else {
+      await ctx.rebuild();
+      await ctx.dispose();
+    }
   } catch (err) {
     process.exit(1);
   }
