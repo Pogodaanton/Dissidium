@@ -37,7 +37,8 @@ You are welcome to share your thoughts on this bot over at [GitHub issues](https
 
 While I don't expect any contributions, here are some of my thoughts to consider in no particular order:
 
-- The baseline code in `src` should be kept simple and straightforward. Most components will make more sense in the modular `plugins` directory.
+- The baseline code in `src` should be kept simple and straightforward.
+- Most new features should likely reside in the modular `plugins` directory.
 - Plugins should be treated as separate modules. They may depend on other plugins, however, those need to be noted in the static `dependencies` array and retrieved through the constructor. Importing them manually is not advised.
 - Make sure to use the provided `.prettierrc` for formatting
 - Esbuild's insane building speeds and the aggressive ratelimiting of Discord's APIs don't go well together. Therefore, the builder and runner processes were seperated:
